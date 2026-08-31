@@ -1,0 +1,19 @@
+{
+  "name": "local-ai-studio",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": ["packages/*"],
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "npm run build -w @studio/server && npm run build -w @studio/web",
+    "dev:server": "npm run dev -w @studio/server",
+    "dev:web": "npm run dev -w @studio/web",
+    "test": "vitest run",
+    "typecheck": "tsc -b packages/shared packages/server packages/web"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

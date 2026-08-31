@@ -1,0 +1,15 @@
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Portable runtime + engine binaries (setup indirir)
+runtime/
+
+# Kullanici verisi: modeller, cikti, veritabani, sirlar
+data/
+
+# Isletim sistemi / editor
+.DS_Store
+.vscode/
+.idea/
+*.log

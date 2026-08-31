@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": ".",
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "noEmit": true,
+    "composite": false
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts", "build.mjs"]
+}

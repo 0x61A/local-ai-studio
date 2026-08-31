@@ -1,0 +1,57 @@
+{
+  "app": {
+    "name": "Local AI Studio",
+    "tagline": "Yerel yapay zekâ çalışma alanı"
+  },
+  "nav": {
+    "chat": "Sohbet",
+    "agent": "Ajan",
+    "models": "Modeller",
+    "knowledge": "Bilgi tabanı",
+    "image": "Görsel",
+    "audio": "Ses",
+    "settings": "Ayarlar",
+    "comingSoon": "Yakında"
+  },
+  "system": {
+    "title": "Sistem",
+    "os": "İşletim sistemi",
+    "cpu": "İşlemci",
+    "cores": "{{physical}} fiziksel / {{logical}} mantıksal çekirdek",
+    "memory": "Bellek",
+    "gpu": "Grafik işlemci",
+    "accelerator": "Hızlandırma",
+    "vram": "Model bütçesi",
+    "runtime": "Çalışma zamanı",
+    "loading": "Sistem bilgisi okunuyor…"
+  },
+  "telemetry": {
+    "title": "Canlı kullanım",
+    "cpu": "İşlemci",
+    "memory": "Bellek",
+    "uptime": "Çalışma süresi",
+    "seconds": "{{count}} sn"
+  },
+  "auth": {
+    "missingTitle": "Oturum anahtarı yok",
+    "missingBody": "Bu sayfayı başlatıcının verdiği adresle açın. Terminalde görünen `http://127.0.0.1:.../#t=…` bağlantısını kullanın.",
+    "expiredTitle": "Oturum geçersiz",
+    "expiredBody": "Sunucu yeniden başlatılmış olabilir. Terminaldeki yeni bağlantıyı kullanın."
+  },
+  "error": {
+    "unauthorized": "Oturum anahtarı geçersiz veya eksik.",
+    "bad_origin": "İzin verilmeyen kaynak.",
+    "bad_host": "İzin verilmeyen sunucu adı.",
+    "cross_site": "Çapraz site istekleri reddedilir.",
+    "path_escape": "Geçersiz dosya yolu.",
+    "not_found": "Kaynak bulunamadı.",
+    "invalid_request": "Geçersiz istek.",
+    "internal_error": "Beklenmeyen sunucu hatası."
+  },
+  "common": {
+    "retry": "Yeniden dene",
+    "error": "Hata",
+    "theme": "Tema",
+    "language": "Dil"
+  }
+}

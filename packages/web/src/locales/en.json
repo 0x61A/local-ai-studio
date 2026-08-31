@@ -1,0 +1,57 @@
+{
+  "app": {
+    "name": "Local AI Studio",
+    "tagline": "Local AI workspace"
+  },
+  "nav": {
+    "chat": "Chat",
+    "agent": "Agent",
+    "models": "Models",
+    "knowledge": "Knowledge",
+    "image": "Image",
+    "audio": "Audio",
+    "settings": "Settings",
+    "comingSoon": "Soon"
+  },
+  "system": {
+    "title": "System",
+    "os": "Operating system",
+    "cpu": "Processor",
+    "cores": "{{physical}} physical / {{logical}} logical cores",
+    "memory": "Memory",
+    "gpu": "Graphics",
+    "accelerator": "Acceleration",
+    "vram": "Model budget",
+    "runtime": "Runtime",
+    "loading": "Reading system information…"
+  },
+  "telemetry": {
+    "title": "Live usage",
+    "cpu": "CPU",
+    "memory": "Memory",
+    "uptime": "Uptime",
+    "seconds": "{{count}}s"
+  },
+  "auth": {
+    "missingTitle": "No session key",
+    "missingBody": "Open this page using the address printed by the launcher. Use the `http://127.0.0.1:.../#t=…` link shown in your terminal.",
+    "expiredTitle": "Session invalid",
+    "expiredBody": "The server may have restarted. Use the new link from your terminal."
+  },
+  "error": {
+    "unauthorized": "Session key is invalid or missing.",
+    "bad_origin": "Origin not allowed.",
+    "bad_host": "Host not allowed.",
+    "cross_site": "Cross-site requests are rejected.",
+    "path_escape": "Invalid file path.",
+    "not_found": "Resource not found.",
+    "invalid_request": "Invalid request.",
+    "internal_error": "Unexpected server error."
+  },
+  "common": {
+    "retry": "Retry",
+    "error": "Error",
+    "theme": "Theme",
+    "language": "Language"
+  }
+}
