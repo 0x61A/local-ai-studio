@@ -15,6 +15,7 @@ const options = {
   format: "cjs",
   target: "node22",
   sourcemap: true,
+  minify: !process.argv.includes("--watch"),
   // node: yerlesikleri disarida birakilir, geri kalan her sey gomulur
   packages: "bundle",
   external: ["node:*"],

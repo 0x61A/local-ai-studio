@@ -1,3 +1,4 @@
+import { readLocal } from "./storage";
 import tr from "../locales/tr.json";
 import en from "../locales/en.json";
 
@@ -11,9 +12,10 @@ export function isLanguage(value: string): value is Language {
 }
 
 export function detectLanguage(): Language {
-  const stored = localStorage.getItem("studio.language");
+  const stored = readLocal("studio.language");
   if (stored && isLanguage(stored)) return stored;
-  return navigator.language.toLowerCase().startsWith("tr") ? "tr" : "en";
+  const preferred = globalThis.navigator?.language ?? "";
+  return preferred.toLowerCase().startsWith("tr") ? "tr" : "en";
 }
 
 /**

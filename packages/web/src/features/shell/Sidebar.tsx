@@ -1,18 +1,31 @@
 import { useUi } from "../../stores/ui";
 
-/** Faz 0'da yalnizca Sistem aktif; digerleri kendi fazlarinda acilir. */
-const NAV = [
-  { id: "system", labelKey: "system.title", ready: true },
-  { id: "chat", labelKey: "nav.chat", ready: false },
+export type TabId = "chat" | "models" | "settings" | "system";
+
+interface NavItem {
+  id: TabId | string;
+  labelKey: string;
+  ready: boolean;
+}
+
+const NAV: NavItem[] = [
+  { id: "chat", labelKey: "nav.chat", ready: true },
+  { id: "models", labelKey: "nav.models", ready: true },
   { id: "agent", labelKey: "nav.agent", ready: false },
-  { id: "models", labelKey: "nav.models", ready: false },
   { id: "knowledge", labelKey: "nav.knowledge", ready: false },
   { id: "image", labelKey: "nav.image", ready: false },
   { id: "audio", labelKey: "nav.audio", ready: false },
-  { id: "settings", labelKey: "nav.settings", ready: false },
-] as const;
+  { id: "settings", labelKey: "nav.settings", ready: true },
+  { id: "system", labelKey: "system.title", ready: true },
+];
 
-export function Sidebar() {
+export function Sidebar({
+  active,
+  onSelect,
+}: {
+  active: TabId;
+  onSelect: (tab: TabId) => void;
+}) {
   const { t, theme, setTheme, language, setLanguage } = useUi();
 
   return (
@@ -29,12 +42,11 @@ export function Sidebar() {
             type="button"
             className="nav__item"
             disabled={!item.ready}
-            aria-current={item.ready ? "page" : undefined}
+            aria-current={item.ready && item.id === active ? "page" : undefined}
+            onClick={() => item.ready && onSelect(item.id as TabId)}
           >
             <span>{t(item.labelKey)}</span>
-            {!item.ready && (
-              <span className="nav__badge">{t("nav.comingSoon")}</span>
-            )}
+            {!item.ready && <span className="nav__badge">{t("nav.comingSoon")}</span>}
           </button>
         ))}
       </nav>

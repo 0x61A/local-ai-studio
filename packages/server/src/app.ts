@@ -5,6 +5,10 @@ import { assertAuthorized, assertSameOrigin } from "./http/auth.js";
 import { HttpError } from "./http/errors.js";
 import { Router, isPublicRoute, writeError } from "./http/router.js";
 import { serveStatic } from "./http/static.js";
+import { registerChatRoutes } from "./routes/chat.js";
+import { registerConversationRoutes } from "./routes/conversations.js";
+import { registerModelRoutes } from "./routes/models.js";
+import { registerSettingsRoutes } from "./routes/settings.js";
 import { registerSystemRoutes } from "./routes/system.js";
 
 /** Asla degistirilmez. Eski projedeki S1 (0.0.0.0 bind) acikliginin karsiligi. */
@@ -25,6 +29,10 @@ export interface StudioServer {
 export function buildRouter(): Router {
   const router = new Router();
   registerSystemRoutes(router);
+  registerSettingsRoutes(router);
+  registerConversationRoutes(router);
+  registerModelRoutes(router);
+  registerChatRoutes(router);
   return router;
 }
 

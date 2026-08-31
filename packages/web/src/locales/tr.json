@@ -1,8 +1,5 @@
 {
-  "app": {
-    "name": "Local AI Studio",
-    "tagline": "Yerel yapay zekâ çalışma alanı"
-  },
+  "app": { "name": "Local AI Studio", "tagline": "Yerel yapay zekâ çalışma alanı" },
   "nav": {
     "chat": "Sohbet",
     "agent": "Ajan",
@@ -12,6 +9,69 @@
     "audio": "Ses",
     "settings": "Ayarlar",
     "comingSoon": "Yakında"
+  },
+  "chat": {
+    "provider": "Sağlayıcı",
+    "model": "Model",
+    "needsKey": "anahtar gerekli",
+    "noModels": "Kullanılabilir model yok",
+    "loadModelFirst": "Önce Modeller sekmesinden bir model yükleyin.",
+    "empty": "Bir soru yazarak başlayın.",
+    "you": "Sen",
+    "assistant": "Asistan",
+    "reasoning": "Düşünme adımları",
+    "placeholder": "Mesajınızı yazın… (Enter gönderir, Shift+Enter satır atlar)",
+    "blockedPlaceholder": "Önce bir model seçin",
+    "send": "Gönder",
+    "stop": "Durdur",
+    "new": "Yeni sohbet",
+    "search": "Sohbetlerde ara…",
+    "noResults": "Eşleşen sohbet yok",
+    "noConversations": "Henüz sohbet yok",
+    "untitled": "Başlıksız",
+    "delete": "Sil",
+    "usageTitle": "İstem + üretim belirteci"
+  },
+  "models": {
+    "engine": "Yerel motor",
+    "loaded": "Yüklü model",
+    "context": "Bağlam",
+    "footprint": "Bellek kullanımı",
+    "unload": "Modeli kaldır",
+    "noEngine": "Yüklü model yok.",
+    "downloads": "İndirmeler",
+    "resumed": "kaldığı yerden",
+    "verifying": "doğrulanıyor…",
+    "cancel": "İptal",
+    "local": "Bilgisayarındaki modeller",
+    "noLocal": "Henüz model yok. Aşağıdan arayıp indirebilirsiniz.",
+    "trainContext": "eğitim bağlamı {{n}}",
+    "active": "Yüklü",
+    "load": "Yükle",
+    "delete": "Sil",
+    "discover": "Model keşfet (Hugging Face)",
+    "searchPlaceholder": "Örnek: qwen2.5 7b instruct",
+    "search": "Ara",
+    "searching": "Aranıyor…",
+    "loadingFiles": "Dosyalar okunuyor…",
+    "recommended": "önerilen",
+    "download": "İndir"
+  },
+  "settings": {
+    "keys": "API anahtarları",
+    "keysNote": "Anahtarlar şifrelenerek saklanır ve ana anahtar macOS Anahtar Zinciri'nde tutulur. Bir kez kaydedildikten sonra tam değeri hiçbir yerde gösterilmez.",
+    "defaults": "Varsayılanlar",
+    "systemPrompt": "Sistem istemi",
+    "systemPromptPlaceholder": "Modele her sohbette verilecek talimat…",
+    "temperature": "Sıcaklık",
+    "maxTokens": "En fazla belirteç",
+    "saved": "Kaydedildi.",
+    "saving": "Kaydediliyor…",
+    "getKey": "Anahtar al ↗",
+    "addKey": "API anahtarını yapıştırın",
+    "replaceKey": "Yeni anahtarla değiştir",
+    "save": "Kaydet",
+    "remove": "Kaldır"
   },
   "system": {
     "title": "Sistem",
@@ -46,12 +106,9 @@
     "path_escape": "Geçersiz dosya yolu.",
     "not_found": "Kaynak bulunamadı.",
     "invalid_request": "Geçersiz istek.",
+    "engine_failed": "Motor başlatılamadı.",
+    "model_in_use": "Bu model şu anda yüklü.",
     "internal_error": "Beklenmeyen sunucu hatası."
   },
-  "common": {
-    "retry": "Yeniden dene",
-    "error": "Hata",
-    "theme": "Tema",
-    "language": "Dil"
-  }
+  "common": { "retry": "Yeniden dene", "error": "Hata", "theme": "Tema", "language": "Dil" }
 }

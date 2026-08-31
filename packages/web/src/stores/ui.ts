@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { detectLanguage, translate, type Language } from "../lib/i18n";
+import { readLocal, writeLocal } from "../lib/storage";
 
 export type Theme = "light" | "dark";
 
@@ -12,9 +13,9 @@ interface UiState {
 }
 
 function detectTheme(): Theme {
-  const stored = localStorage.getItem("studio.theme");
+  const stored = readLocal("studio.theme");
   if (stored === "light" || stored === "dark") return stored;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
+  return globalThis.matchMedia?.("(prefers-color-scheme: dark)").matches
     ? "dark"
     : "light";
 }
@@ -23,12 +24,12 @@ export const useUi = create<UiState>((set, get) => ({
   language: detectLanguage(),
   theme: detectTheme(),
   setLanguage: (language) => {
-    localStorage.setItem("studio.language", language);
+    writeLocal("studio.language", language);
     document.documentElement.lang = language;
     set({ language });
   },
   setTheme: (theme) => {
-    localStorage.setItem("studio.theme", theme);
+    writeLocal("studio.theme", theme);
     document.documentElement.dataset["theme"] = theme;
     set({ theme });
   },

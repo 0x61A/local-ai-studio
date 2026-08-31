@@ -1,8 +1,5 @@
 {
-  "app": {
-    "name": "Local AI Studio",
-    "tagline": "Local AI workspace"
-  },
+  "app": { "name": "Local AI Studio", "tagline": "Local AI workspace" },
   "nav": {
     "chat": "Chat",
     "agent": "Agent",
@@ -12,6 +9,69 @@
     "audio": "Audio",
     "settings": "Settings",
     "comingSoon": "Soon"
+  },
+  "chat": {
+    "provider": "Provider",
+    "model": "Model",
+    "needsKey": "key required",
+    "noModels": "No models available",
+    "loadModelFirst": "Load a model from the Models tab first.",
+    "empty": "Start by asking something.",
+    "you": "You",
+    "assistant": "Assistant",
+    "reasoning": "Reasoning steps",
+    "placeholder": "Type your message… (Enter sends, Shift+Enter for a new line)",
+    "blockedPlaceholder": "Select a model first",
+    "send": "Send",
+    "stop": "Stop",
+    "new": "New chat",
+    "search": "Search chats…",
+    "noResults": "No matching chats",
+    "noConversations": "No chats yet",
+    "untitled": "Untitled",
+    "delete": "Delete",
+    "usageTitle": "Prompt + completion tokens"
+  },
+  "models": {
+    "engine": "Local engine",
+    "loaded": "Loaded model",
+    "context": "Context",
+    "footprint": "Memory use",
+    "unload": "Unload model",
+    "noEngine": "No model loaded.",
+    "downloads": "Downloads",
+    "resumed": "resumed",
+    "verifying": "verifying…",
+    "cancel": "Cancel",
+    "local": "Models on this machine",
+    "noLocal": "No models yet. Search and download one below.",
+    "trainContext": "train context {{n}}",
+    "active": "Loaded",
+    "load": "Load",
+    "delete": "Delete",
+    "discover": "Discover models (Hugging Face)",
+    "searchPlaceholder": "Example: qwen2.5 7b instruct",
+    "search": "Search",
+    "searching": "Searching…",
+    "loadingFiles": "Reading files…",
+    "recommended": "recommended",
+    "download": "Download"
+  },
+  "settings": {
+    "keys": "API keys",
+    "keysNote": "Keys are stored encrypted, with the master key held in the macOS Keychain. Once saved, the full value is never displayed anywhere.",
+    "defaults": "Defaults",
+    "systemPrompt": "System prompt",
+    "systemPromptPlaceholder": "Instruction given to the model in every chat…",
+    "temperature": "Temperature",
+    "maxTokens": "Max tokens",
+    "saved": "Saved.",
+    "saving": "Saving…",
+    "getKey": "Get a key ↗",
+    "addKey": "Paste your API key",
+    "replaceKey": "Replace with a new key",
+    "save": "Save",
+    "remove": "Remove"
   },
   "system": {
     "title": "System",
@@ -46,12 +106,9 @@
     "path_escape": "Invalid file path.",
     "not_found": "Resource not found.",
     "invalid_request": "Invalid request.",
+    "engine_failed": "Engine failed to start.",
+    "model_in_use": "That model is currently loaded.",
     "internal_error": "Unexpected server error."
   },
-  "common": {
-    "retry": "Retry",
-    "error": "Error",
-    "theme": "Theme",
-    "language": "Language"
-  }
+  "common": { "retry": "Retry", "error": "Error", "theme": "Theme", "language": "Language" }
 }

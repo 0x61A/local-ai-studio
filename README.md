@@ -9,8 +9,8 @@ Node.js + TypeScript tek calisma zamani; agir hesap native motorlarda
 | Faz | Kapsam | Durum |
 | --- | --- | --- |
 | 0 | Iskelet, guvenli HTTP katmani, donanim tespiti, i18n, testler | tamamlandi |
-| 1 | Motor supervisor, model yoneticisi, saglayici katmani, sohbet | siradaki |
-| 2 | Tool-calling ajan, onay kapisi, MCP istemcisi | planlandi |
+| 1 | Motor supervisor, model yoneticisi, saglayici katmani, sohbet | tamamlandi |
+| 2 | Tool-calling ajan, onay kapisi, MCP istemcisi | siradaki |
 | 3 | RAG / bilgi tabani | planlandi |
 | 4 | Gorsel uretimi + ses (STT/TTS) | planlandi |
 | 5 | Cok-ajanli planlayici, bilgisayar kullanimi | planlandi |
@@ -24,6 +24,26 @@ Node.js + TypeScript tek calisma zamani; agir hesap native motorlarda
 
 Ilk calistirmada tasinabilir Node.js `runtime/node` altina indirilir
 (SHA256 dogrulamali). Sisteme hicbir sey kurulmaz.
+
+Yerel model calistirmak icin llama.cpp motoru da gerekir:
+
+```bash
+bash scripts/setup/fetch-llama.sh
+```
+
+Sonra arayuzdeki **Modeller** sekmesinden Hugging Face'te arama yapip tek
+tikla model indirebilirsiniz. Bulut saglayicilari (OpenAI, Anthropic,
+Gemini, OpenRouter) icin **Ayarlar** sekmesinden API anahtari ekleyin.
+
+## Neler var
+
+- **Sohbet**: yerel GGUF modeller ve bulut saglayicilari ayni arayuzde,
+  akisli yanit, konusma gecmisi, tam metin arama
+- **Modeller**: Hugging Face arama, donanima gore nicemleme onerisi,
+  kaldigi yerden devam eden ve SHA256 dogrulanan indirme, motor kontrolu
+- **Ayarlar**: API anahtarlari (sifreli saklanir), sistem istemi,
+  sicaklik, belirtec siniri
+- **Sistem**: donanim bilgisi ve canli kullanim
 
 ## Gelistirme
 
@@ -51,6 +71,12 @@ npm run dev:web     # vite dev sunucusu, /api isteklerini sunucuya proxy'ler
   dogrulanir; capraz-site istekleri ve DNS rebinding reddedilir.
 - Dosyaya dokunan her yol `resolveInside()` uzerinden gecer; sembolik bag
   dahil kok disina cikan istek 403 doner.
+- **API anahtarlari** AES-256-GCM ile sifrelenir; ana anahtar macOS
+  Anahtar Zinciri'nde tutulur. Anahtarin kendisi hicbir zaman komut satiri
+  argumani olmaz (`ps` ciktisina sizardi) ve istemciye yalnizca maskesi
+  doner.
+- **Model indirmeleri** konak beyaz listesinden gecer ve Hugging Face'in
+  bildirdigi SHA256 ile dogrulanir.
 
 Bu dort madde `packages/server/test/server.test.ts` icinde test edilir.
 
