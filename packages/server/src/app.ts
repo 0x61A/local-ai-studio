@@ -6,6 +6,7 @@ import { HttpError } from "./http/errors.js";
 import { Router, isPublicRoute, writeError } from "./http/router.js";
 import { serveStatic } from "./http/static.js";
 import { registerAgentRoutes } from "./routes/agent.js";
+import { registerAudioRoutes } from "./routes/audio.js";
 import { registerChatRoutes } from "./routes/chat.js";
 import { registerConversationRoutes } from "./routes/conversations.js";
 import { registerImageRoutes } from "./routes/images.js";
@@ -39,6 +40,7 @@ export function buildRouter(): Router {
   registerAgentRoutes(router);
   registerKnowledgeRoutes(router);
   registerImageRoutes(router);
+  registerAudioRoutes(router);
   return router;
 }
 

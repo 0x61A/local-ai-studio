@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { ZodType } from "zod";
+import { PathEscapeError } from "../security/paths.js";
 import { HttpError } from "./errors.js";
 
 export interface RequestContext<B = unknown, Q = unknown> {
@@ -177,11 +178,19 @@ export function writeJson(res: ServerResponse, status: number, payload: unknown)
 }
 
 export function writeError(res: ServerResponse, err: unknown) {
+  // Kok disina cikan yol bir sunucu hatasi degil, reddedilmis bir istektir.
+  // Tek tek rotalarda yakalamak yerine burada ceviririz: dosyaya dokunan her
+  // uc ayni cevabi versin ve deneme her seferinde gunluge yigilmasin.
+  const normalized =
+    err instanceof PathEscapeError
+      ? HttpError.forbidden("path_escape", "Gecersiz dosya yolu.")
+      : err;
+
   const http =
-    err instanceof HttpError
-      ? err
+    normalized instanceof HttpError
+      ? normalized
       : new HttpError(500, "internal_error", "Beklenmeyen sunucu hatasi.");
-  if (!(err instanceof HttpError)) {
+  if (!(normalized instanceof HttpError)) {
     console.error("[http] islenmeyen hata:", err);
   }
   if (res.writableEnded) return;

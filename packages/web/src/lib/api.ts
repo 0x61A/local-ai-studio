@@ -369,6 +369,43 @@ export interface GenerateImageRequest {
   strength?: number;
 }
 
+export interface Voice {
+  name: string;
+  locale: string;
+  sample: string;
+}
+
+export interface TranscriptSegment {
+  start: number;
+  end: number;
+  text: string;
+}
+
+export interface Transcript {
+  text: string;
+  language: string;
+  segments: TranscriptSegment[];
+  ms: number;
+}
+
+export interface AudioOutput {
+  filename: string;
+  sizeBytes: number;
+  createdAt: number;
+}
+
+export interface AudioOverview {
+  speech: {
+    binary: string | null;
+    models: Array<{ filename: string; sizeBytes: number }>;
+    modelsDir: string;
+    cloudAvailable: boolean;
+  };
+  tts: { available: boolean; voices: Voice[] };
+  outputs: AudioOutput[];
+  maxAudioBytes: number;
+}
+
 export const api = {
   system: () => request<SystemInfo>("/api/system"),
   telemetry: () => request<Telemetry>("/api/telemetry"),
@@ -536,6 +573,30 @@ export const api = {
   deleteImage: (id: string) =>
     request<{ ok: boolean }>(`/api/images/${id}`, { method: "DELETE" }),
 
+  audio: () => request<AudioOverview>("/api/audio"),
+  transcribe: (input: {
+    audio: string;
+    provider?: "local" | "openai";
+    model?: string;
+    language?: string;
+    translate?: boolean;
+  }) =>
+    request<{ transcript: Transcript }>("/api/audio/transcribe", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  speak: (text: string, voice?: string, rate?: number) =>
+    request<{ speech: { filename: string; bytes: number; voice: string; ms: number }; outputs: AudioOutput[] }>(
+      "/api/audio/speak",
+      { method: "POST", body: JSON.stringify({ text, ...(voice ? { voice } : {}), ...(rate ? { rate } : {}) }) },
+    ),
+  audioOutputs: () => request<{ outputs: AudioOutput[] }>("/api/audio/outputs"),
+  deleteAudioOutput: (filename: string) =>
+    request<{ outputs: AudioOutput[] }>(
+      `/api/audio/outputs/${encodeURIComponent(filename)}`,
+      { method: "DELETE" },
+    ),
+
   downloads: () => request<DownloadTask[]>("/api/downloads"),
   startDownload: (url: string, filename: string, sha256?: string | null) =>
     request<DownloadTask>("/api/downloads", {
@@ -560,5 +621,14 @@ export async function fetchImageObjectUrl(filename: string): Promise<string> {
     headers: authHeaders(),
   });
   if (!response.ok) throw new Error(`Görsel yüklenemedi: HTTP ${response.status}`);
+  return URL.createObjectURL(await response.blob());
+}
+
+/** Ses dosyasını blob URL olarak getirir; bkz. fetchImageObjectUrl. */
+export async function fetchAudioObjectUrl(filename: string): Promise<string> {
+  const response = await fetch(`/api/audio/file/${encodeURIComponent(filename)}`, {
+    headers: authHeaders(),
+  });
+  if (!response.ok) throw new Error(`Ses yüklenemedi: HTTP ${response.status}`);
   return URL.createObjectURL(await response.blob());
 }

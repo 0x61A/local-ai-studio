@@ -12,8 +12,8 @@ Node.js + TypeScript tek calisma zamani; agir hesap native motorlarda
 | 1 | Motor supervisor, model yoneticisi, saglayici katmani, sohbet | tamamlandi |
 | 2 | Tool-calling ajan, onay kapisi, MCP istemcisi | tamamlandi |
 | 3 | RAG / bilgi tabani (PDF, DOCX, Markdown, kod) | tamamlandi |
-| 4 | Gorsel uretimi + ses (STT/TTS) | siradaki |
-| 5 | Cok-ajanli planlayici, bilgisayar kullanimi | planlandi |
+| 4 | Gorsel uretimi + ses (STT/TTS) | tamamlandi |
+| 5 | Cok-ajanli planlayici, bilgisayar kullanimi | siradaki |
 | 6 | Windows + Linux | planlandi |
 
 ## Calistirma
@@ -25,10 +25,18 @@ Node.js + TypeScript tek calisma zamani; agir hesap native motorlarda
 Ilk calistirmada tasinabilir Node.js `runtime/node` altina indirilir
 (SHA256 dogrulamali). Sisteme hicbir sey kurulmaz.
 
-Yerel model calistirmak icin llama.cpp motoru da gerekir:
+Motorlar ayri ayri indirilir; yalnizca kullanacaklarinizi kurun:
 
 ```bash
 bash scripts/setup/fetch-llama.sh
+```
+
+```bash
+bash scripts/setup/fetch-sd.sh
+```
+
+```bash
+bash scripts/setup/fetch-whisper.sh
 ```
 
 Sonra arayuzdeki **Modeller** sekmesinden Hugging Face'te arama yapip tek
@@ -56,6 +64,14 @@ Gemini, OpenRouter) icin **Ayarlar** sekmesinden API anahtari ekleyin.
 - **Gomme motoru**: sohbet modelinden ayri bir llama.cpp yuvasi. Ikisi de
   bellek butcesine sigdigi surece ayni anda yuklu kalir; bulut gomme
   (OpenAI, Gemini) secilirse yerel motor hic gerekmez.
+- **Gorsel**: yerel stable-diffusion.cpp ile metinden gorsel ve gorselden
+  gorsel (img2img), yigin uretim, yuksek cozunurluk duzeltmesi, iptal
+  edilebilir is kuyrugu. Galeri her gorselin yaninda uretim
+  parametrelerini tutar -- tohum dahil, cunku tohum gorselin icine gomulu
+  ustveriden okunur ve ayni sonucu yeniden uretmek mumkun olur.
+- **Ses**: konusma tanima (whisper.cpp ya da OpenAI) ve metinden sese.
+  Ses donusturme tarayicida yapilir (`decodeAudioData`), sunucuda ffmpeg
+  yok: tarayici zaten mp3, m4a, ogg, webm hepsini cozebiliyor.
 - **Ayarlar**: API anahtarlari (sifreli saklanir), web arama saglayicilari,
   MCP sunuculari, sistem istemi, sicaklik, belirtec siniri
 - **Sistem**: donanim bilgisi ve canli kullanim
@@ -107,8 +123,24 @@ npm run dev:web     # vite dev sunucusu, /api isteklerini sunucuya proxy'ler
 - **Belge yukleme** yalnizca tarayicidan secilen dosyayla yapilir; sunucuya
   "su yoldaki dosyayi indeksle" dedirtilemez. Boyle bir uc, yerel istekler
   icin keyfi dosya okuma yetkisi olurdu.
+- **Kok disina cikan yol** her ucta 403 doner (500 degil): reddedilmis bir
+  istek sunucu hatasi degildir ve deneme gunluge yigilmaz.
+- **Seslendirme metni** komut satiri argumani olmaz, gecici dosyadan
+  okunur; ses adi gercek ses listesiyle dogrulanir (aksi hâlde `-o` gibi
+  bir ad bayrak sanilabilirdi).
 
-Bu dort madde `packages/server/test/server.test.ts` icinde test edilir.
+Bu maddelerin cogu `packages/server/test/server.test.ts` ve
+`router.test.ts` icinde test edilir.
+
+### Bilinen bosluk: macOS'ta whisper.cpp
+
+whisper.cpp macOS icin hazir ikili yayimlamiyor (Linux ve Windows icin
+yayimliyor). Sisteme paket kurmadigimiz icin macOS'ta uc secenek var:
+PATH'te hazir bir `whisper-cli` varsa onu kullaniriz, kendiniz kurabilir
+ya da bulut saglayicisini secebilirsiniz. `scripts/setup/fetch-whisper.sh`
+bunu ekranda anlatir. Referans proje ayni bosluğu kurulum sirasinda
+Homebrew ile `whisper-cpp` kurarak kapatiyor -- yani kendi sifir kurulum
+vaadini boziyor.
 
 ## Lisans
 
