@@ -3,6 +3,7 @@ import { HOST, startStudioServer } from "./app.js";
 import { reapOrphans } from "./engines/supervisor.js";
 import { stopEmbedding } from "./engines/embedding.js";
 import { stopLlama } from "./engines/llama.js";
+import { stopSd } from "./engines/sd.js";
 import { disconnectAll } from "./agent/mcp.js";
 
 async function start(): Promise<void> {
@@ -31,6 +32,7 @@ async function start(): Promise<void> {
     await Promise.allSettled([
       stopLlama(),
       stopEmbedding(),
+      stopSd(),
       disconnectAll(),
       studio.close(),
     ]);

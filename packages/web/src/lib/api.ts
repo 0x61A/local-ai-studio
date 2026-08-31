@@ -288,6 +288,87 @@ export interface KnowledgeOverview {
   maxUploadBytes: number;
 }
 
+export interface StoredImage {
+  id: string;
+  filename: string;
+  prompt: string;
+  negativePrompt: string;
+  model: string;
+  sampler: string;
+  scheduler: string;
+  steps: number;
+  cfgScale: number;
+  seed: number;
+  width: number;
+  height: number;
+  source: "txt2img" | "img2img";
+  parentId: string | null;
+  hires: boolean;
+  ms: number;
+  favorite: boolean;
+  createdAt: number;
+}
+
+export interface ImageJob {
+  id: string;
+  state: "queued" | "generating" | "saving" | "done" | "error" | "cancelled";
+  prompt: string;
+  batchCount: number;
+  queuePosition: number;
+  imageIds: string[];
+  error: string | null;
+  startedAt: number;
+  ms: number;
+}
+
+export interface SdCapabilities {
+  modelName: string;
+  samplers: string[];
+  schedulers: string[];
+  upscalers: string[];
+  defaults: Record<string, unknown>;
+}
+
+export interface ImageOverview {
+  engine: {
+    id: string;
+    state: "stopped" | "starting" | "ready" | "error";
+    model: string;
+    port: number | null;
+    error: string | null;
+    footprintMb: number;
+    ready: boolean;
+  };
+  model: string | null;
+  models: Array<{ filename: string; sizeBytes: number }>;
+  modelsDir: string;
+  budget: MemoryBudget;
+  jobs: ImageJob[];
+  capabilities: SdCapabilities | null;
+}
+
+export interface GenerateImageRequest {
+  prompt: string;
+  negativePrompt?: string;
+  width?: number;
+  height?: number;
+  steps?: number;
+  cfgScale?: number;
+  seed?: number;
+  batchCount?: number;
+  sampler?: string;
+  scheduler?: string;
+  hires?: {
+    enabled: boolean;
+    upscaler?: string;
+    scale?: number;
+    steps?: number;
+    denoisingStrength?: number;
+  };
+  initImageId?: string;
+  strength?: number;
+}
+
 export const api = {
   system: () => request<SystemInfo>("/api/system"),
   telemetry: () => request<Telemetry>("/api/telemetry"),
@@ -418,6 +499,43 @@ export const api = {
       { method: "POST" },
     ),
 
+  images: () => request<ImageOverview>("/api/images"),
+  loadImageEngine: (filename: string) =>
+    request<{ engine: ImageOverview["engine"] }>("/api/images/engine/load", {
+      method: "POST",
+      body: JSON.stringify({ filename }),
+    }),
+  unloadImageEngine: () =>
+    request<{ engine: ImageOverview["engine"] }>("/api/images/engine/unload", {
+      method: "POST",
+    }),
+  generateImage: (input: GenerateImageRequest) =>
+    request<{ job: ImageJob }>("/api/images/generate", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  imageJobs: () => request<{ jobs: ImageJob[] }>("/api/images/jobs"),
+  cancelImageJob: (id: string) =>
+    request<{ ok: boolean }>(`/api/images/jobs/${id}/cancel`, { method: "POST" }),
+  clearImageJobs: () =>
+    request<{ jobs: ImageJob[] }>("/api/images/jobs/clear", { method: "POST" }),
+  gallery: (query?: { q?: string; favorites?: boolean }) => {
+    const params = new URLSearchParams();
+    if (query?.q) params.set("q", query.q);
+    if (query?.favorites) params.set("favorites", "1");
+    const suffix = params.toString();
+    return request<{ images: StoredImage[] }>(
+      suffix ? `/api/images/gallery?${suffix}` : "/api/images/gallery",
+    );
+  },
+  favoriteImage: (id: string, favorite: boolean) =>
+    request<{ image: StoredImage }>(`/api/images/${id}/favorite`, {
+      method: "POST",
+      body: JSON.stringify({ favorite }),
+    }),
+  deleteImage: (id: string) =>
+    request<{ ok: boolean }>(`/api/images/${id}`, { method: "DELETE" }),
+
   downloads: () => request<DownloadTask[]>("/api/downloads"),
   startDownload: (url: string, filename: string, sha256?: string | null) =>
     request<DownloadTask>("/api/downloads", {
@@ -429,3 +547,18 @@ export const api = {
   clearDownloads: () =>
     request<{ ok: boolean }>("/api/downloads/clear", { method: "POST" }),
 };
+
+/**
+ * Görsel dosyasını blob URL olarak getirir.
+ *
+ * `<img src>` özel başlık gönderemez; token'ı adres çubuğuna koymamak için
+ * dosya `fetch` ile çekilip nesne URL'i üretilir. Çağıran taraf işi
+ * bitince `URL.revokeObjectURL` çağırmalı.
+ */
+export async function fetchImageObjectUrl(filename: string): Promise<string> {
+  const response = await fetch(`/api/images/file/${encodeURIComponent(filename)}`, {
+    headers: authHeaders(),
+  });
+  if (!response.ok) throw new Error(`Görsel yüklenemedi: HTTP ${response.status}`);
+  return URL.createObjectURL(await response.blob());
+}

@@ -99,8 +99,8 @@ describe("uygulama kabuğu", () => {
 
   it("hazır olmayan sekmeleri devre dışı bırakır", () => {
     render(<App />);
-    // Faz 4+ sekmeleri hâlâ kapalı olmalı.
-    for (const label of ["Görsel", "Ses"]) {
+    // Faz 4'ün ses yarısı hâlâ kapalı.
+    for (const label of ["Ses"]) {
       const button = screen.getByText(label).closest("button");
       expect(button?.disabled, `açık kalmış sekme: ${label}`).toBe(true);
     }
@@ -108,7 +108,7 @@ describe("uygulama kabuğu", () => {
 
   it("hazır sekmeler tıklanabilir", () => {
     render(<App />);
-    for (const label of ["Sohbet", "Ajan", "Modeller", "Bilgi tabanı", "Ayarlar"]) {
+    for (const label of ["Sohbet", "Ajan", "Modeller", "Bilgi tabanı", "Görsel", "Ayarlar"]) {
       const button = screen.getByText(label).closest("button");
       expect(button?.disabled, `kapalı kalmış sekme: ${label}`).toBe(false);
     }

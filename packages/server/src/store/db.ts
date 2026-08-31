@@ -168,6 +168,53 @@ const MIGRATIONS: Array<(database: DatabaseSync) => void> = [
       END;
     `);
   },
+  (database) => {
+    database.exec(`
+      -- Uretim parametreleri goruntunun yaninda durur: ayni sonucu yeniden
+      -- uretmek icin gereken her sey (tohum dahil) burada.
+      CREATE TABLE images (
+        id              TEXT PRIMARY KEY,
+        filename        TEXT NOT NULL,
+        prompt          TEXT NOT NULL,
+        negative_prompt TEXT NOT NULL DEFAULT '',
+        model           TEXT NOT NULL DEFAULT '',
+        sampler         TEXT NOT NULL DEFAULT '',
+        scheduler       TEXT NOT NULL DEFAULT '',
+        steps           INTEGER NOT NULL DEFAULT 0,
+        cfg_scale       REAL NOT NULL DEFAULT 0,
+        seed            INTEGER NOT NULL DEFAULT -1,
+        width           INTEGER NOT NULL DEFAULT 0,
+        height          INTEGER NOT NULL DEFAULT 0,
+        -- txt2img | img2img
+        source          TEXT NOT NULL DEFAULT 'txt2img',
+        parent_id       TEXT REFERENCES images(id) ON DELETE SET NULL,
+        hires           INTEGER NOT NULL DEFAULT 0,
+        ms              INTEGER NOT NULL DEFAULT 0,
+        favorite        INTEGER NOT NULL DEFAULT 0,
+        created_at      INTEGER NOT NULL
+      );
+      CREATE INDEX idx_images_created ON images(created_at DESC);
+
+      CREATE VIRTUAL TABLE images_fts USING fts5(
+        prompt,
+        content='images',
+        content_rowid='rowid'
+      );
+
+      CREATE TRIGGER images_fts_insert AFTER INSERT ON images BEGIN
+        INSERT INTO images_fts(rowid, prompt) VALUES (new.rowid, new.prompt);
+      END;
+      CREATE TRIGGER images_fts_delete AFTER DELETE ON images BEGIN
+        INSERT INTO images_fts(images_fts, rowid, prompt)
+        VALUES ('delete', old.rowid, old.prompt);
+      END;
+      CREATE TRIGGER images_fts_update AFTER UPDATE ON images BEGIN
+        INSERT INTO images_fts(images_fts, rowid, prompt)
+        VALUES ('delete', old.rowid, old.prompt);
+        INSERT INTO images_fts(rowid, prompt) VALUES (new.rowid, new.prompt);
+      END;
+    `);
+  },
 ];
 
 function migrate(database: DatabaseSync): void {

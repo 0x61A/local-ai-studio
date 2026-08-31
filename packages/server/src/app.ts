@@ -8,6 +8,7 @@ import { serveStatic } from "./http/static.js";
 import { registerAgentRoutes } from "./routes/agent.js";
 import { registerChatRoutes } from "./routes/chat.js";
 import { registerConversationRoutes } from "./routes/conversations.js";
+import { registerImageRoutes } from "./routes/images.js";
 import { registerKnowledgeRoutes } from "./routes/knowledge.js";
 import { registerModelRoutes } from "./routes/models.js";
 import { registerSettingsRoutes } from "./routes/settings.js";
@@ -37,6 +38,7 @@ export function buildRouter(): Router {
   registerChatRoutes(router);
   registerAgentRoutes(router);
   registerKnowledgeRoutes(router);
+  registerImageRoutes(router);
   return router;
 }
 

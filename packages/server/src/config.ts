@@ -33,6 +33,8 @@ export const WEB_DIST = path.join(ROOT, "packages", "web", "dist");
 export const DATA_DIR = path.join(ROOT, "data");
 export const RUNTIME_DIR = path.join(ROOT, "runtime");
 export const MODELS_DIR = path.join(DATA_DIR, "models");
+/** Görsel modelleri ayrı durur: metin modeli listesine karışmamalı. */
+export const IMAGE_MODELS_DIR = path.join(MODELS_DIR, "image");
 export const OUTPUTS_DIR = path.join(DATA_DIR, "outputs");
 /** Motor süreçlerinin kimlikleri; çökme sonrası yetim kalanları toplamak için. */
 export const ENGINE_PID_FILE = path.join(DATA_DIR, "engine-pids.json");
@@ -61,7 +63,7 @@ export const PREFERRED_PORT = (() => {
 export const SESSION_TOKEN = crypto.randomBytes(32).toString("base64url");
 
 export function ensureDataDirs(): void {
-  for (const dir of [DATA_DIR, MODELS_DIR, OUTPUTS_DIR]) {
+  for (const dir of [DATA_DIR, MODELS_DIR, IMAGE_MODELS_DIR, OUTPUTS_DIR]) {
     fs.mkdirSync(dir, { recursive: true });
   }
 }

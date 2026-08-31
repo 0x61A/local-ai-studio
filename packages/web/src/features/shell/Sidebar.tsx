@@ -5,6 +5,7 @@ export type TabId =
   | "agent"
   | "models"
   | "knowledge"
+  | "image"
   | "settings"
   | "system";
 
@@ -19,7 +20,7 @@ const NAV: NavItem[] = [
   { id: "models", labelKey: "nav.models", ready: true },
   { id: "agent", labelKey: "nav.agent", ready: true },
   { id: "knowledge", labelKey: "nav.knowledge", ready: true },
-  { id: "image", labelKey: "nav.image", ready: false },
+  { id: "image", labelKey: "nav.image", ready: true },
   { id: "audio", labelKey: "nav.audio", ready: false },
   { id: "settings", labelKey: "nav.settings", ready: true },
   { id: "system", labelKey: "system.title", ready: true },

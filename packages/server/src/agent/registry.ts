@@ -1,4 +1,5 @@
 import { fileTools } from "./tools/files.js";
+import { imageTools } from "./tools/image.js";
 import { knowledgeTools } from "./tools/knowledge.js";
 import { shellTools } from "./tools/shell.js";
 import { webTools } from "./tools/web.js";
@@ -17,6 +18,7 @@ const builtin: Tool<never>[] = [
   ...(fileTools as Tool<never>[]),
   ...(webTools as Tool<never>[]),
   ...(knowledgeTools as Tool<never>[]),
+  ...(imageTools as Tool<never>[]),
   ...(shellTools as Tool<never>[]),
 ];
 
