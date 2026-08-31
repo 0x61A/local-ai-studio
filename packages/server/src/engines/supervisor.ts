@@ -1,5 +1,7 @@
-import { spawn, type ChildProcess } from "node:child_process";
+import { execFileSync, spawn, type ChildProcess } from "node:child_process";
+import fs from "node:fs";
 import net from "node:net";
+import { ENGINE_PID_FILE } from "../config.js";
 
 /**
  * Motor süreç yöneticisi.
@@ -130,6 +132,9 @@ export class Engine {
     });
     this.child = child;
     this.startedAt = Date.now();
+    // Sunucu çökerse süreç sahipsiz kalır ve belleği tutmaya devam eder.
+    // Kimliği diske yazıyoruz; sonraki açılışta reapOrphans() topluyor.
+    recordPid(this.id, child.pid, spec.binary);
 
     captureOutput(child, (line, stream) => {
       this.logTail.push(line);
@@ -204,7 +209,88 @@ export class Engine {
     // Yalnızca kendi süreç kimliğimizi hedefleriz.
     await terminate(child);
     this.child = null;
+    forgetPid(this.id);
     return this.status();
+  }
+}
+
+// -- Yetim süreç toplama ------------------------------------------------------
+
+interface PidRecord {
+  pid: number;
+  binary: string;
+}
+
+function readPidFile(): Record<string, PidRecord> {
+  try {
+    return JSON.parse(fs.readFileSync(ENGINE_PID_FILE, "utf8")) as Record<string, PidRecord>;
+  } catch {
+    return {};
+  }
+}
+
+function writePidFile(records: Record<string, PidRecord>): void {
+  try {
+    fs.writeFileSync(ENGINE_PID_FILE, JSON.stringify(records), "utf8");
+  } catch {
+    // Kayıt tutulamazsa yetim toplama çalışmaz; çalışmayı engellemez.
+  }
+}
+
+function recordPid(id: string, pid: number | undefined, binary: string): void {
+  if (!pid) return;
+  writePidFile({ ...readPidFile(), [id]: { pid, binary } });
+}
+
+function forgetPid(id: string): void {
+  const records = readPidFile();
+  delete records[id];
+  writePidFile(records);
+}
+
+/**
+ * Önceki oturumdan kalan motor süreçlerini toplar.
+ *
+ * Yalnızca BİZİM başlattığımız ikili dosyayı çalıştıran süreçler öldürülür:
+ * kimlik geri kullanılmış olabilir, o yüzden öldürmeden önce komut satırı
+ * kontrol edilir. Referans projedeki `taskkill /F /IM node.exe` gibi kör bir
+ * öldürme burada asla yapılmaz.
+ */
+export function reapOrphans(): number {
+  const records = readPidFile();
+  let reaped = 0;
+
+  for (const [id, record] of Object.entries(records)) {
+    if (!isOurProcess(record.pid, record.binary)) {
+      delete records[id];
+      continue;
+    }
+    try {
+      process.kill(record.pid, "SIGTERM");
+      reaped += 1;
+      console.log(`  [motor] önceki oturumdan kalan süreç kapatıldı (pid ${record.pid})`);
+    } catch {
+      // Süreç zaten yok.
+    }
+    delete records[id];
+  }
+
+  writePidFile(records);
+  return reaped;
+}
+
+/** Kimlik gerçekten bizim ikili dosyamızı mı çalıştırıyor? */
+function isOurProcess(pid: number, binary: string): boolean {
+  if (!Number.isInteger(pid) || pid <= 1) return false;
+  try {
+    const command = execFileSync("ps", ["-o", "command=", "-p", String(pid)], {
+      encoding: "utf8",
+      timeout: 5000,
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    return command.includes(binary);
+  } catch {
+    return false;
   }
 }
 

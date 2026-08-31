@@ -10,8 +10,8 @@ Node.js + TypeScript tek calisma zamani; agir hesap native motorlarda
 | --- | --- | --- |
 | 0 | Iskelet, guvenli HTTP katmani, donanim tespiti, i18n, testler | tamamlandi |
 | 1 | Motor supervisor, model yoneticisi, saglayici katmani, sohbet | tamamlandi |
-| 2 | Tool-calling ajan, onay kapisi, MCP istemcisi | siradaki |
-| 3 | RAG / bilgi tabani | planlandi |
+| 2 | Tool-calling ajan, onay kapisi, MCP istemcisi | tamamlandi |
+| 3 | RAG / bilgi tabani | siradaki |
 | 4 | Gorsel uretimi + ses (STT/TTS) | planlandi |
 | 5 | Cok-ajanli planlayici, bilgisayar kullanimi | planlandi |
 | 6 | Windows + Linux | planlandi |
@@ -41,8 +41,13 @@ Gemini, OpenRouter) icin **Ayarlar** sekmesinden API anahtari ekleyin.
   akisli yanit, konusma gecmisi, tam metin arama
 - **Modeller**: Hugging Face arama, donanima gore nicemleme onerisi,
   kaldigi yerden devam eden ve SHA256 dogrulanan indirme, motor kontrolu
-- **Ayarlar**: API anahtarlari (sifreli saklanir), sistem istemi,
-  sicaklik, belirtec siniri
+- **Ajan**: arac cagiran ajan dongusu. Dosya oku/yaz/sil, klasor listele,
+  metin ara, web arama, sayfa cekme, komut calistirma. Yazma ve komut
+  islemleri onay kartinda fark onizlemesiyle onay ister.
+- **MCP**: Model Context Protocol sunuculari takilabilir; araclari ajana
+  eklenir. Sunucu salt okunur oldugunu bildirmezse araclari onay ister.
+- **Ayarlar**: API anahtarlari (sifreli saklanir), web arama saglayicilari,
+  MCP sunuculari, sistem istemi, sicaklik, belirtec siniri
 - **Sistem**: donanim bilgisi ve canli kullanim
 
 ## Gelistirme
@@ -77,6 +82,17 @@ npm run dev:web     # vite dev sunucusu, /api isteklerini sunucuya proxy'ler
   doner.
 - **Model indirmeleri** konak beyaz listesinden gecer ve Hugging Face'in
   bildirdigi SHA256 ile dogrulanir.
+- **Ajan sandbox'i**: tum dosya araclari secilen calisma alani klasorune
+  kilitlidir; sembolik bag dahil disari cikan istek hata doner. Ev dizini
+  gibi genis klasorler calisma alani olarak kabul edilmez.
+- **Onay kapisi**: yazma ve komut calistirma her seferinde onay ister.
+  Varsayilan reddetmektir -- zaman asimi, sekme kapanmasi veya sunucu
+  yeniden baslamasi izin anlamina gelmez.
+- **Web'den cekilen icerik** modele "guvenilmez dis icerik" olarak
+  etiketlenerek verilir.
+- **Motor surecleri** sunucu kapaninca durdurulur; cokme sonrasi kalan
+  yetimler acilista toplanir (yalnizca kendi ikili dosyamizi calistiran
+  surecler, kimlik `ps` ciktisiyla dogrulanarak).
 
 Bu dort madde `packages/server/test/server.test.ts` icinde test edilir.
 

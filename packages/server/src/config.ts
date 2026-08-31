@@ -34,6 +34,8 @@ export const DATA_DIR = path.join(ROOT, "data");
 export const RUNTIME_DIR = path.join(ROOT, "runtime");
 export const MODELS_DIR = path.join(DATA_DIR, "models");
 export const OUTPUTS_DIR = path.join(DATA_DIR, "outputs");
+/** Motor süreçlerinin kimlikleri; çökme sonrası yetim kalanları toplamak için. */
+export const ENGINE_PID_FILE = path.join(DATA_DIR, "engine-pids.json");
 
 export const APP_VERSION: string = (() => {
   try {

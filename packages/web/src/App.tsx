@@ -6,6 +6,7 @@ import { Sidebar, type TabId } from "./features/shell/Sidebar";
 import { SystemPanel } from "./features/shell/SystemPanel";
 import { TelemetryPanel } from "./features/shell/TelemetryPanel";
 import { Notice } from "./features/shell/Notice";
+import { AgentView } from "./features/agent/AgentView";
 import { ChatView } from "./features/chat/ChatView";
 import { ModelsView } from "./features/models/ModelsView";
 import { SettingsView } from "./features/settings/SettingsView";
@@ -29,8 +30,9 @@ export function App() {
   return (
     <div className="shell">
       <Sidebar active={tab} onSelect={setTab} />
-      <main className={tab === "chat" ? "main main--flush" : "main"}>
+      <main className={tab === "chat" || tab === "agent" ? "main main--flush" : "main"}>
         {tab === "chat" && <ChatView />}
+        {tab === "agent" && <AgentView />}
         {tab === "models" && <ModelsView />}
         {tab === "settings" && <SettingsView />}
         {tab === "system" && <SystemTab onAuthError={() => setAuthError(true)} />}

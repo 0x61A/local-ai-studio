@@ -1,5 +1,8 @@
 {
-  "app": { "name": "Local AI Studio", "tagline": "Local AI workspace" },
+  "app": {
+    "name": "Local AI Studio",
+    "tagline": "Local AI workspace"
+  },
   "nav": {
     "chat": "Chat",
     "agent": "Agent",
@@ -110,5 +113,56 @@
     "model_in_use": "That model is currently loaded.",
     "internal_error": "Unexpected server error."
   },
-  "common": { "retry": "Retry", "error": "Error", "theme": "Theme", "language": "Language" }
+  "common": {
+    "retry": "Retry",
+    "error": "Error",
+    "theme": "Theme",
+    "language": "Language"
+  },
+  "agent": {
+    "workspace": "Workspace",
+    "workspaceNote": "The agent can only read, write, and run commands inside this folder. Broad folders like your home directory are rejected.",
+    "choose": "Choose",
+    "change": "Change",
+    "clearWorkspace": "Clear",
+    "pickWorkspaceFirst": "Pick a workspace folder first.",
+    "empty": "Give the agent a task. It picks its own tools; writing files and running commands will ask for your approval.",
+    "placeholder": "Describe the task… (⌘+Enter runs it)",
+    "run": "Run",
+    "stop": "Stop",
+    "clear": "Clear",
+    "step": "step {{n}}",
+    "tools": "Tools",
+    "arguments": "Arguments",
+    "result": "Result",
+    "allow": "Allow",
+    "allowAlways": "Always allow this session",
+    "deny": "Deny",
+    "approved": "Allowed",
+    "rejected": "Denied",
+    "alwaysAllowed": "Always allowed this session",
+    "risk": {
+      "read": "read",
+      "write": "write",
+      "exec": "command"
+    }
+  },
+  "mcp": {
+    "title": "MCP servers",
+    "note": "Model Context Protocol servers give the agent new tools. Adding a server means running a command — check it. Unless a server declares a tool read-only, it will ask for approval.",
+    "addServer": "Add server",
+    "add": "Add",
+    "cancel": "Cancel",
+    "remove": "Remove",
+    "idPlaceholder": "id (e.g. filesystem)",
+    "labelPlaceholder": "display name",
+    "commandRequired": "Command cannot be empty.",
+    "toolCount": "{{n}} tools",
+    "disconnected": "not connected"
+  },
+  "search": {
+    "title": "Web search providers",
+    "note": "Without a key we fall back to scraping DuckDuckGo, which breaks when their page changes. A Brave or Tavily key removes that fragility.",
+    "active": "active"
+  }
 }

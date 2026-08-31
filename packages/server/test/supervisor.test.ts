@@ -178,3 +178,53 @@ describe("findFreePort", () => {
     }
   });
 });
+
+describe("yetim süreç toplama", () => {
+  it("kendi ikilimizi çalıştırmayan kimliği öldürmez", async () => {
+    const { reapOrphans } = await import("../src/engines/supervisor.js");
+    const fs = await import("node:fs");
+    const { ENGINE_PID_FILE } = await import("../src/config.js");
+
+    // Bu sürecin kendi kimliği: bizim "motor ikilimiz" değil, bu yüzden
+    // dokunulmamalı. Kör öldürme burada patlardı.
+    fs.writeFileSync(
+      ENGINE_PID_FILE,
+      JSON.stringify({ sahte: { pid: process.pid, binary: "/olmayan/motor-ikili" } }),
+    );
+    expect(reapOrphans()).toBe(0);
+    // Hâlâ yaşıyoruz.
+    expect(process.kill(process.pid, 0)).toBe(true);
+    fs.rmSync(ENGINE_PID_FILE, { force: true });
+  });
+
+  it("var olmayan kimliği sessizce atlar", async () => {
+    const { reapOrphans } = await import("../src/engines/supervisor.js");
+    const fs = await import("node:fs");
+    const { ENGINE_PID_FILE } = await import("../src/config.js");
+    fs.writeFileSync(
+      ENGINE_PID_FILE,
+      JSON.stringify({ eski: { pid: 999999, binary: "/bin/whatever" } }),
+    );
+    expect(reapOrphans()).toBe(0);
+    fs.rmSync(ENGINE_PID_FILE, { force: true });
+  });
+
+  it("gerçekten kendi başlattığımız süreci toplar", async () => {
+    const { reapOrphans } = await import("../src/engines/supervisor.js");
+    const fs = await import("node:fs");
+    const { spawn } = await import("node:child_process");
+    const { ENGINE_PID_FILE } = await import("../src/config.js");
+
+    const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"]);
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    fs.writeFileSync(
+      ENGINE_PID_FILE,
+      JSON.stringify({ test: { pid: child.pid, binary: process.execPath } }),
+    );
+
+    expect(reapOrphans()).toBe(1);
+    await new Promise((resolve) => child.once("exit", resolve));
+    expect(child.killed || child.exitCode !== null || child.signalCode !== null).toBe(true);
+    fs.rmSync(ENGINE_PID_FILE, { force: true });
+  });
+});

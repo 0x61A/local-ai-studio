@@ -1,5 +1,8 @@
 {
-  "app": { "name": "Local AI Studio", "tagline": "Yerel yapay zekâ çalışma alanı" },
+  "app": {
+    "name": "Local AI Studio",
+    "tagline": "Yerel yapay zekâ çalışma alanı"
+  },
   "nav": {
     "chat": "Sohbet",
     "agent": "Ajan",
@@ -110,5 +113,56 @@
     "model_in_use": "Bu model şu anda yüklü.",
     "internal_error": "Beklenmeyen sunucu hatası."
   },
-  "common": { "retry": "Yeniden dene", "error": "Hata", "theme": "Tema", "language": "Dil" }
+  "common": {
+    "retry": "Yeniden dene",
+    "error": "Hata",
+    "theme": "Tema",
+    "language": "Dil"
+  },
+  "agent": {
+    "workspace": "Çalışma alanı",
+    "workspaceNote": "Ajan yalnızca bu klasörün içinde dosya okuyup yazabilir ve komut çalıştırabilir. Ev dizini gibi geniş klasörler kabul edilmez.",
+    "choose": "Seç",
+    "change": "Değiştir",
+    "clearWorkspace": "Kaldır",
+    "pickWorkspaceFirst": "Önce bir çalışma alanı klasörü seçin.",
+    "empty": "Ajana bir görev verin. Araçları kendisi seçecek; dosya yazma ve komut çalıştırma sizin onayınızı isteyecek.",
+    "placeholder": "Görevi yazın… (⌘+Enter çalıştırır)",
+    "run": "Çalıştır",
+    "stop": "Durdur",
+    "clear": "Temizle",
+    "step": "adım {{n}}",
+    "tools": "Araçlar",
+    "arguments": "Argümanlar",
+    "result": "Sonuç",
+    "allow": "İzin ver",
+    "allowAlways": "Bu oturumda hep izin ver",
+    "deny": "Reddet",
+    "approved": "İzin verildi",
+    "rejected": "Reddedildi",
+    "alwaysAllowed": "Bu oturumda hep izinli",
+    "risk": {
+      "read": "okuma",
+      "write": "yazma",
+      "exec": "komut"
+    }
+  },
+  "mcp": {
+    "title": "MCP sunucuları",
+    "note": "Model Context Protocol sunucuları ajana yeni araçlar kazandırır. Sunucu eklemek bir komut çalıştırmak demektir; komutu kontrol edin. Sunucu salt okunur olduğunu bildirmezse araçları onay ister.",
+    "addServer": "Sunucu ekle",
+    "add": "Ekle",
+    "cancel": "Vazgeç",
+    "remove": "Kaldır",
+    "idPlaceholder": "kimlik (örn. filesystem)",
+    "labelPlaceholder": "görünen ad",
+    "commandRequired": "Komut boş olamaz.",
+    "toolCount": "{{n}} araç",
+    "disconnected": "bağlı değil"
+  },
+  "search": {
+    "title": "Web arama sağlayıcıları",
+    "note": "Anahtar eklemezseniz DuckDuckGo sayfa kazımasına düşülür; sayfa düzeni değişirse arama kırılabilir. Brave veya Tavily anahtarı bunu ortadan kaldırır.",
+    "active": "etkin"
+  }
 }

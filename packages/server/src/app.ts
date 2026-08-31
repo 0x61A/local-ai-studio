@@ -5,6 +5,7 @@ import { assertAuthorized, assertSameOrigin } from "./http/auth.js";
 import { HttpError } from "./http/errors.js";
 import { Router, isPublicRoute, writeError } from "./http/router.js";
 import { serveStatic } from "./http/static.js";
+import { registerAgentRoutes } from "./routes/agent.js";
 import { registerChatRoutes } from "./routes/chat.js";
 import { registerConversationRoutes } from "./routes/conversations.js";
 import { registerModelRoutes } from "./routes/models.js";
@@ -33,6 +34,7 @@ export function buildRouter(): Router {
   registerConversationRoutes(router);
   registerModelRoutes(router);
   registerChatRoutes(router);
+  registerAgentRoutes(router);
   return router;
 }
 

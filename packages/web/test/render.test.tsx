@@ -99,8 +99,19 @@ describe("uygulama kabuğu", () => {
 
   it("hazır olmayan sekmeleri devre dışı bırakır", () => {
     render(<App />);
-    const agent = screen.getByText("Ajan").closest("button");
-    expect(agent?.disabled).toBe(true);
+    // Faz 3+ sekmeleri hâlâ kapalı olmalı.
+    for (const label of ["Bilgi tabanı", "Görsel", "Ses"]) {
+      const button = screen.getByText(label).closest("button");
+      expect(button?.disabled, `açık kalmış sekme: ${label}`).toBe(true);
+    }
+  });
+
+  it("hazır sekmeler tıklanabilir", () => {
+    render(<App />);
+    for (const label of ["Sohbet", "Ajan", "Modeller", "Ayarlar"]) {
+      const button = screen.getByText(label).closest("button");
+      expect(button?.disabled, `kapalı kalmış sekme: ${label}`).toBe(false);
+    }
   });
 
   it("çeviri anahtarı sızdırmaz", () => {

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { api, type Preferences } from "../../lib/api";
 import { useModels } from "../../stores/models";
 import { useUi } from "../../stores/ui";
+import { McpPanel } from "./McpPanel";
+import { SearchKeys } from "./SearchKeys";
 
 export function SettingsView() {
   const t = useUi((s) => s.t);
@@ -43,6 +45,10 @@ export function SettingsView() {
             ))}
         </div>
       </section>
+
+      <SearchKeys />
+
+      <McpPanel />
 
       {preferences && (
         <section className="card">

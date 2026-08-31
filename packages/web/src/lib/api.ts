@@ -162,6 +162,59 @@ export interface HfFile {
   downloadUrl: string;
 }
 
+export type ToolRisk = "read" | "write" | "exec";
+
+export interface ToolInfo {
+  name: string;
+  description: string;
+  risk: ToolRisk;
+  parameters: Record<string, unknown>;
+}
+
+export interface ApprovalRequest {
+  toolName: string;
+  risk: ToolRisk;
+  summary: string;
+  diff?: string;
+  command?: string;
+  arguments: unknown;
+}
+
+export interface McpServer {
+  id: string;
+  label: string;
+  transport: "stdio" | "http";
+  command?: string;
+  args?: string[];
+  url?: string;
+  enabled: boolean;
+}
+
+export interface McpStatus {
+  id: string;
+  label: string;
+  connected: boolean;
+  toolCount: number;
+  error: string | null;
+}
+
+export interface SearchProviderInfo {
+  id: string;
+  label: string;
+  requiresApiKey: boolean;
+  keyUrl: string;
+  available: boolean;
+}
+
+export interface AgentStatus {
+  workspace: string | null;
+  running: boolean;
+  pendingApprovals: Array<{ id: string; request: ApprovalRequest }>;
+  alwaysAllowed: string[];
+  mcpServers: McpStatus[];
+  searchProviders: SearchProviderInfo[];
+}
+
 export interface Preferences {
   defaultProvider: string;
   defaultModel: string;
@@ -227,6 +280,33 @@ export const api = {
     request<{ files: HfFile[]; recommended: string | null; budget: MemoryBudget }>(
       `/api/hf/models/${repo}`,
     ),
+
+  agentStatus: () => request<AgentStatus>("/api/agent/status"),
+  agentTools: () => request<ToolInfo[]>("/api/agent/tools"),
+  setWorkspace: (path: string) =>
+    request<{ workspace: string }>("/api/agent/workspace", {
+      method: "POST",
+      body: JSON.stringify({ path }),
+    }),
+  clearWorkspace: () =>
+    request<{ workspace: null }>("/api/agent/workspace", { method: "DELETE" }),
+  approve: (id: string, approved: boolean, always = false) =>
+    request<{ ok: boolean }>("/api/agent/approve", {
+      method: "POST",
+      body: JSON.stringify({ id, approved, always }),
+    }),
+  stopAgent: () => request<{ ok: boolean }>("/api/agent/stop", { method: "POST" }),
+  mcpServers: () =>
+    request<{ servers: McpServer[]; statuses: McpStatus[] }>("/api/agent/mcp"),
+  saveMcpServer: (config: McpServer) =>
+    request<{ servers: McpServer[]; statuses: McpStatus[] }>("/api/agent/mcp", {
+      method: "POST",
+      body: JSON.stringify(config),
+    }),
+  deleteMcpServer: (id: string) =>
+    request<{ servers: McpServer[]; statuses: McpStatus[] }>(`/api/agent/mcp/${id}`, {
+      method: "DELETE",
+    }),
 
   downloads: () => request<DownloadTask[]>("/api/downloads"),
   startDownload: (url: string, filename: string, sha256?: string | null) =>
