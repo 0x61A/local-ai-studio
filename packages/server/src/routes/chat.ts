@@ -11,6 +11,8 @@ import {
   listMessages,
   updateConversation,
 } from "../store/conversations.js";
+import { formatSources, searchCollection, toSourceRefs } from "../rag/search.js";
+import { getCollection } from "../rag/store.js";
 import { getPreferences } from "./settings.js";
 
 /** Yerel sağlayıcı motorun canlı adresini buradan öğrenir. */
@@ -27,6 +29,8 @@ const ChatBody = z.object({
   temperature: z.number().min(0).max(2).optional(),
   maxTokens: z.number().int().min(1).max(200_000).optional(),
   systemPrompt: z.string().max(20_000).optional(),
+  /** Secilirse cevap bu bilgi tabanindan alinan kaynaklara dayandirilir. */
+  collectionId: z.string().uuid().optional(),
 });
 
 export function registerChatRoutes(router: Router): void {
@@ -86,8 +90,13 @@ export function registerChatRoutes(router: Router): void {
         (stored): ChatMessage => ({ role: stored.role, content: stored.content }),
       );
       const systemPrompt = body.systemPrompt ?? preferences.systemPrompt;
+      const grounding = body.collectionId
+        ? await retrieve(body.collectionId, body.message, stream)
+        : null;
+
       const messages: ChatMessage[] = [
         ...(systemPrompt ? [{ role: "system" as const, content: systemPrompt }] : []),
+        ...(grounding ? [{ role: "system" as const, content: grounding }] : []),
         ...history,
         { role: "user" as const, content: body.message },
       ];
@@ -158,4 +167,40 @@ export function registerChatRoutes(router: Router): void {
     }
     return undefined;
   });
+}
+
+const GROUNDING_PROMPT = [
+  "Aşağıdaki kaynaklar kullanıcının kendi belgelerinden alındı.",
+  "Cevabını öncelikle bunlara dayandır ve kullandığın her kaynağa [1], [2] biçiminde atıf yap.",
+  "Kaynaklarda olmayan bir şey sorulursa bunu açıkça söyle; kaynaklara dayanıyormuş gibi uydurma.",
+].join(" ");
+
+/**
+ * Bilgi tabanından bağlam çeker ve kaynakları istemciye de yollar.
+ * Arama başarısız olursa sohbet durmaz: model kaynaksız cevaplar, kullanıcı
+ * neden kaynaksız olduğunu görür.
+ */
+async function retrieve(
+  collectionId: string,
+  question: string,
+  stream: EventStream,
+): Promise<string | null> {
+  const collection = getCollection(collectionId);
+  if (!collection) {
+    stream.send("sources", { sources: [], error: "Koleksiyon bulunamadı." });
+    return null;
+  }
+  try {
+    const hits = await searchCollection(
+      collection.id,
+      { provider: collection.embedProvider as never, model: collection.embedModel },
+      question,
+    );
+    stream.send("sources", { sources: toSourceRefs(hits, question), error: null });
+    if (!hits.length) return null;
+    return `${GROUNDING_PROMPT}\n\n${formatSources(hits)}`;
+  } catch (err) {
+    stream.send("sources", { sources: [], error: (err as Error).message });
+    return null;
+  }
 }

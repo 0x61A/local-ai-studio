@@ -1,15 +1,30 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "../../stores/chat";
+import { useKnowledge } from "../../stores/knowledge";
 import { useModels } from "../../stores/models";
 import { useUi } from "../../stores/ui";
+import { SourceList } from "../knowledge/SourceList";
+import type { KnowledgeCollection } from "../../lib/api";
+
+/**
+ * Sabit boş dizi. Seçicinin her çağrıda yeni `[]` döndürmesi zustand'in
+ * referans karşılaştırmasını her seferinde yanıltır ve sonsuz render
+ * döngüsü açar.
+ */
+const NO_COLLECTIONS: KnowledgeCollection[] = [];
 import { ConversationList } from "./ConversationList";
 import { MessageList } from "./MessageList";
 import { Composer } from "./Composer";
 
 export function ChatView() {
   const t = useUi((s) => s.t);
-  const { messages, sending, error, usage, send, stop, loadConversations } = useChat();
+  const {
+    messages, sending, error, usage, sources, sourceError, collectionId,
+    send, stop, loadConversations, setCollection,
+  } = useChat();
   const { engine, providers, providerModels, refresh, loadProviderModels } = useModels();
+  const collections = useKnowledge((s) => s.overview?.collections ?? NO_COLLECTIONS);
+  const refreshKnowledge = useKnowledge((s) => s.refresh);
 
   const [provider, setProvider] = useState("llamacpp");
   const [model, setModel] = useState("");
@@ -18,7 +33,8 @@ export function ChatView() {
   useEffect(() => {
     void loadConversations();
     void refresh();
-  }, [loadConversations, refresh]);
+    void refreshKnowledge();
+  }, [loadConversations, refresh, refreshKnowledge]);
 
   useEffect(() => {
     void loadProviderModels(provider);
@@ -91,6 +107,24 @@ export function ChatView() {
             </select>
           </label>
 
+          {collections.length > 0 && (
+            <label className="field field--inline">
+              <span className="field__label">{t("chat.knowledge")}</span>
+              <select
+                className="input input--compact"
+                value={collectionId ?? ""}
+                onChange={(event) => setCollection(event.target.value || null)}
+              >
+                <option value="">{t("chat.noKnowledge")}</option>
+                {collections.map((collection) => (
+                  <option key={collection.id} value={collection.id}>
+                    {collection.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
           {usage && (
             <span className="chat__usage" title={t("chat.usageTitle")}>
               {usage.promptTokens} + {usage.completionTokens}
@@ -104,6 +138,13 @@ export function ChatView() {
           )}
           {blockedReason && <p className="chat__empty">{blockedReason}</p>}
           <MessageList messages={messages} />
+          {sourceError && <p className="chat__error" role="alert">{sourceError}</p>}
+          {sources.length > 0 && (
+            <details className="chat__sources">
+              <summary>{t("chat.sourcesUsed", { n: sources.length })}</summary>
+              <SourceList sources={sources} />
+            </details>
+          )}
           {error && <p className="chat__error" role="alert">{error}</p>}
           <div ref={bottomRef} />
         </div>

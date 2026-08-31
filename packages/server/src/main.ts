@@ -1,6 +1,7 @@
 import { PREFERRED_PORT, SESSION_TOKEN, ensureDataDirs } from "./config.js";
 import { HOST, startStudioServer } from "./app.js";
 import { reapOrphans } from "./engines/supervisor.js";
+import { stopEmbedding } from "./engines/embedding.js";
 import { stopLlama } from "./engines/llama.js";
 import { disconnectAll } from "./agent/mcp.js";
 
@@ -27,7 +28,12 @@ async function start(): Promise<void> {
     console.log("\n  Kapatiliyor...");
     // Motor ve MCP süreçleri önce: aksi hâlde sahipsiz kalıp belleği
     // tutmaya devam ederler.
-    await Promise.allSettled([stopLlama(), disconnectAll(), studio.close()]);
+    await Promise.allSettled([
+      stopLlama(),
+      stopEmbedding(),
+      disconnectAll(),
+      studio.close(),
+    ]);
     process.exit(0);
   };
   process.on("SIGINT", () => void shutdown());

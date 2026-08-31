@@ -11,8 +11,8 @@ Node.js + TypeScript tek calisma zamani; agir hesap native motorlarda
 | 0 | Iskelet, guvenli HTTP katmani, donanim tespiti, i18n, testler | tamamlandi |
 | 1 | Motor supervisor, model yoneticisi, saglayici katmani, sohbet | tamamlandi |
 | 2 | Tool-calling ajan, onay kapisi, MCP istemcisi | tamamlandi |
-| 3 | RAG / bilgi tabani | siradaki |
-| 4 | Gorsel uretimi + ses (STT/TTS) | planlandi |
+| 3 | RAG / bilgi tabani (PDF, DOCX, Markdown, kod) | tamamlandi |
+| 4 | Gorsel uretimi + ses (STT/TTS) | siradaki |
 | 5 | Cok-ajanli planlayici, bilgisayar kullanimi | planlandi |
 | 6 | Windows + Linux | planlandi |
 
@@ -46,6 +46,16 @@ Gemini, OpenRouter) icin **Ayarlar** sekmesinden API anahtari ekleyin.
   islemleri onay kartinda fark onizlemesiyle onay ister.
 - **MCP**: Model Context Protocol sunuculari takilabilir; araclari ajana
   eklenir. Sunucu salt okunur oldugunu bildirmezse araclari onay ister.
+- **Bilgi tabani (RAG)**: PDF, DOCX, Markdown, duz metin ve kod dosyalari
+  yuklenir; baslik ve sayfa farkindalikli parcalanir, gomme vektorleri
+  uretilir. Arama anlamsal benzerlik ile tam metin (FTS5) sonuclarini sira
+  tabanli birlestirir -- yalnizca anlamsal arama surum numarasi, urun kodu
+  gibi birebir terimleri kacirir. Cevaplar `[1]`, `[2]` seklinde kaynak
+  numarasi tasir; kaynak paneli belge adini, sayfayi ve eslesen metni
+  gosterir. Ajan da `knowledge_search` araciyla ayni tabana bakar.
+- **Gomme motoru**: sohbet modelinden ayri bir llama.cpp yuvasi. Ikisi de
+  bellek butcesine sigdigi surece ayni anda yuklu kalir; bulut gomme
+  (OpenAI, Gemini) secilirse yerel motor hic gerekmez.
 - **Ayarlar**: API anahtarlari (sifreli saklanir), web arama saglayicilari,
   MCP sunuculari, sistem istemi, sicaklik, belirtec siniri
 - **Sistem**: donanim bilgisi ve canli kullanim
@@ -93,6 +103,10 @@ npm run dev:web     # vite dev sunucusu, /api isteklerini sunucuya proxy'ler
 - **Motor surecleri** sunucu kapaninca durdurulur; cokme sonrasi kalan
   yetimler acilista toplanir (yalnizca kendi ikili dosyamizi calistiran
   surecler, kimlik `ps` ciktisiyla dogrulanarak).
+
+- **Belge yukleme** yalnizca tarayicidan secilen dosyayla yapilir; sunucuya
+  "su yoldaki dosyayi indeksle" dedirtilemez. Boyle bir uc, yerel istekler
+  icin keyfi dosya okuma yetkisi olurdu.
 
 Bu dort madde `packages/server/test/server.test.ts` icinde test edilir.
 

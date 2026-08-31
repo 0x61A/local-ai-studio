@@ -112,27 +112,41 @@ export function buildArgs(
   plan: LoadPlan,
   options: LlamaStartOptions = {},
 ): string[] {
-  const args = [
+  const common = [
     "--model", modelPath,
     "--host", "127.0.0.1",
     "--port", String(port),
     "--ctx-size", String(plan.contextSize),
     "--n-gpu-layers", plan.gpuLayers < 0 ? "999" : String(plan.gpuLayers),
+    // Yerleşik web arayüzü gereksiz: bizim arayüzümüz var.
+    "--no-webui",
+  ];
+
+  if (options.embedding) {
+    // Havuzlanmış gömme, dizinin tamamının tek yığında işlenmesini ister:
+    // yığın bağlamdan küçükse llama.cpp isteği reddeder. Sohbete özgü
+    // bayraklar (jinja şablonu, KV nicemleme) burada anlamsız.
+    return [
+      ...common,
+      "--embeddings",
+      "--pooling", "mean",
+      "--batch-size", String(plan.contextSize),
+      "--ubatch-size", String(plan.contextSize),
+    ];
+  }
+
+  const args = [
+    ...common,
     // Modelin kendi sohbet şablonunu kullanır; araç çağrısı desteği bununla gelir.
     "--jinja",
     // Flash attention KV önbelleğini nicemlemenin ön koşulu.
     "--flash-attn", "on",
     "--cache-type-k", "q8_0",
     "--cache-type-v", "q8_0",
-    // Yerleşik web arayüzü gereksiz: bizim arayüzümüz var.
-    "--no-webui",
   ];
 
   if (options.projectorPath) {
     args.push("--mmproj", options.projectorPath);
-  }
-  if (options.embedding) {
-    args.push("--embeddings", "--pooling", "mean");
   }
   return args;
 }

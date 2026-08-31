@@ -1,6 +1,12 @@
 import { useUi } from "../../stores/ui";
 
-export type TabId = "chat" | "agent" | "models" | "settings" | "system";
+export type TabId =
+  | "chat"
+  | "agent"
+  | "models"
+  | "knowledge"
+  | "settings"
+  | "system";
 
 interface NavItem {
   id: TabId | string;
@@ -12,7 +18,7 @@ const NAV: NavItem[] = [
   { id: "chat", labelKey: "nav.chat", ready: true },
   { id: "models", labelKey: "nav.models", ready: true },
   { id: "agent", labelKey: "nav.agent", ready: true },
-  { id: "knowledge", labelKey: "nav.knowledge", ready: false },
+  { id: "knowledge", labelKey: "nav.knowledge", ready: true },
   { id: "image", labelKey: "nav.image", ready: false },
   { id: "audio", labelKey: "nav.audio", ready: false },
   { id: "settings", labelKey: "nav.settings", ready: true },

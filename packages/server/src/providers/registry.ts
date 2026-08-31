@@ -307,7 +307,7 @@ async function fetchOpenAiModels(
     }));
 }
 
-async function fetchEmbeddings(
+export async function fetchEmbeddings(
   config: { baseUrl: string; apiKey?: string },
   texts: string[],
   model: string,

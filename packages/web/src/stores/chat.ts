@@ -3,6 +3,7 @@ import {
   api,
   authHeaders,
   type ConversationSummary,
+  type SourceRef,
   type StoredMessage,
 } from "../lib/api";
 import { postEventStream } from "../lib/sse";
@@ -23,10 +24,15 @@ interface ChatState {
   sending: boolean;
   error: string | null;
   usage: { promptTokens: number; completionTokens: number } | null;
+  /** Secili bilgi tabani; null ise cevap belgelere dayandirilmaz. */
+  collectionId: string | null;
+  sources: SourceRef[];
+  sourceError: string | null;
 
   loadConversations: () => Promise<void>;
   openConversation: (id: string) => Promise<void>;
   newConversation: () => void;
+  setCollection: (id: string | null) => void;
   removeConversation: (id: string) => Promise<void>;
   send: (text: string, options: { provider: string; model: string }) => Promise<void>;
   stop: () => void;
@@ -41,6 +47,11 @@ export const useChat = create<ChatState>((set, get) => ({
   sending: false,
   error: null,
   usage: null,
+  collectionId: null,
+  sources: [],
+  sourceError: null,
+
+  setCollection: (id) => set({ collectionId: id, sources: [], sourceError: null }),
 
   loadConversations: async () => {
     try {
@@ -57,6 +68,8 @@ export const useChat = create<ChatState>((set, get) => ({
         activeId: id,
         error: null,
         usage: null,
+        sources: [],
+        sourceError: null,
         messages: messages.map((message) => ({
           id: message.id,
           role: message.role,
@@ -70,7 +83,15 @@ export const useChat = create<ChatState>((set, get) => ({
     }
   },
 
-  newConversation: () => set({ activeId: null, messages: [], error: null, usage: null }),
+  newConversation: () =>
+    set({
+      activeId: null,
+      messages: [],
+      error: null,
+      usage: null,
+      sources: [],
+      sourceError: null,
+    }),
 
   removeConversation: async (id) => {
     await api.deleteConversation(id);
@@ -104,6 +125,8 @@ export const useChat = create<ChatState>((set, get) => ({
       sending: true,
       error: null,
       usage: null,
+      sources: [],
+      sourceError: null,
       messages: [
         ...state.messages,
         userMessage,
@@ -127,6 +150,7 @@ export const useChat = create<ChatState>((set, get) => ({
           message: text,
           provider: options.provider,
           model: options.model,
+          collectionId: get().collectionId ?? undefined,
         },
         { headers: authHeaders(), signal: activeAbort.signal },
       );
@@ -155,6 +179,12 @@ export const useChat = create<ChatState>((set, get) => ({
                 promptTokens: Number(data["promptTokens"] ?? 0),
                 completionTokens: Number(data["completionTokens"] ?? 0),
               },
+            });
+            break;
+          case "sources":
+            set({
+              sources: (data["sources"] as SourceRef[] | undefined) ?? [],
+              sourceError: (data["error"] as string | null) ?? null,
             });
             break;
           case "error":

@@ -100,6 +100,74 @@ const MIGRATIONS: Array<(database: DatabaseSync) => void> = [
       END;
     `);
   },
+  (database) => {
+    database.exec(`
+      CREATE TABLE collections (
+        id             TEXT PRIMARY KEY,
+        name           TEXT NOT NULL,
+        embed_provider TEXT NOT NULL DEFAULT '',
+        embed_model    TEXT NOT NULL DEFAULT '',
+        dimensions     INTEGER NOT NULL DEFAULT 0,
+        created_at     INTEGER NOT NULL
+      );
+
+      CREATE TABLE documents (
+        id            TEXT PRIMARY KEY,
+        collection_id TEXT NOT NULL
+          REFERENCES collections(id) ON DELETE CASCADE,
+        name          TEXT NOT NULL,
+        kind          TEXT NOT NULL,
+        size_bytes    INTEGER NOT NULL DEFAULT 0,
+        page_count    INTEGER NOT NULL DEFAULT 0,
+        chunk_count   INTEGER NOT NULL DEFAULT 0,
+        -- pending | extracting | embedding | ready | error
+        status        TEXT NOT NULL DEFAULT 'pending',
+        error         TEXT NOT NULL DEFAULT '',
+        created_at    INTEGER NOT NULL
+      );
+      CREATE INDEX idx_documents_collection
+        ON documents(collection_id, created_at DESC);
+
+      -- Gomme vektoru ham Float32 dizisi olarak saklanir. Ayni makinede
+      -- yazilip okundugu icin bayt sirasi sorun degil; tasinabilirlik
+      -- gerekirse donusum tek yerde (rag/store.ts) yapilir.
+      CREATE TABLE chunks (
+        id            TEXT PRIMARY KEY,
+        document_id   TEXT NOT NULL
+          REFERENCES documents(id) ON DELETE CASCADE,
+        collection_id TEXT NOT NULL
+          REFERENCES collections(id) ON DELETE CASCADE,
+        seq           INTEGER NOT NULL,
+        page          INTEGER NOT NULL DEFAULT 1,
+        heading       TEXT NOT NULL DEFAULT '',
+        text          TEXT NOT NULL,
+        embedding     BLOB
+      );
+      CREATE INDEX idx_chunks_collection ON chunks(collection_id);
+      CREATE INDEX idx_chunks_document ON chunks(document_id, seq);
+
+      -- Anlamsal arama tek basina sayilari ve ozel adlari kacirir; FTS
+      -- indeksi birebir terim eslesmesini geri getirir (bkz. rag/search.ts).
+      CREATE VIRTUAL TABLE chunks_fts USING fts5(
+        text,
+        content='chunks',
+        content_rowid='rowid'
+      );
+
+      CREATE TRIGGER chunks_fts_insert AFTER INSERT ON chunks BEGIN
+        INSERT INTO chunks_fts(rowid, text) VALUES (new.rowid, new.text);
+      END;
+      CREATE TRIGGER chunks_fts_delete AFTER DELETE ON chunks BEGIN
+        INSERT INTO chunks_fts(chunks_fts, rowid, text)
+        VALUES ('delete', old.rowid, old.text);
+      END;
+      CREATE TRIGGER chunks_fts_update AFTER UPDATE ON chunks BEGIN
+        INSERT INTO chunks_fts(chunks_fts, rowid, text)
+        VALUES ('delete', old.rowid, old.text);
+        INSERT INTO chunks_fts(rowid, text) VALUES (new.rowid, new.text);
+      END;
+    `);
+  },
 ];
 
 function migrate(database: DatabaseSync): void {

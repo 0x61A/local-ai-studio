@@ -223,6 +223,71 @@ export interface Preferences {
   maxTokens: number;
 }
 
+export interface KnowledgeCollection {
+  id: string;
+  name: string;
+  embedProvider: string;
+  embedModel: string;
+  dimensions: number;
+  createdAt: number;
+  documentCount: number;
+  chunkCount: number;
+}
+
+export interface KnowledgeDocument {
+  id: string;
+  collectionId: string;
+  name: string;
+  kind: string;
+  sizeBytes: number;
+  pageCount: number;
+  chunkCount: number;
+  status: "pending" | "extracting" | "embedding" | "ready" | "error";
+  error: string;
+  createdAt: number;
+}
+
+export interface IngestJob {
+  documentId: string;
+  collectionId: string;
+  name: string;
+  status: "queued" | "extracting" | "embedding" | "done" | "error";
+  progress: number;
+  chunkCount: number;
+  error: string | null;
+}
+
+export interface SourceRef {
+  index: number;
+  documentId: string;
+  documentName: string;
+  page: number;
+  heading: string;
+  snippet: string;
+  score: number;
+  matchedBy: "semantic" | "keyword" | "both";
+}
+
+export interface EmbeddingEngineInfo {
+  id: string;
+  state: "stopped" | "starting" | "ready" | "error";
+  model: string;
+  port: number | null;
+  error: string | null;
+  footprintMb: number;
+  ready: boolean;
+  budget: MemoryBudget;
+}
+
+export interface KnowledgeOverview {
+  collections: KnowledgeCollection[];
+  jobs: IngestJob[];
+  embedding: EmbeddingEngineInfo;
+  localEmbeddingModels: LocalModel[];
+  supportedExtensions: string[];
+  maxUploadBytes: number;
+}
+
 export const api = {
   system: () => request<SystemInfo>("/api/system"),
   telemetry: () => request<Telemetry>("/api/telemetry"),
@@ -307,6 +372,51 @@ export const api = {
     request<{ servers: McpServer[]; statuses: McpStatus[] }>(`/api/agent/mcp/${id}`, {
       method: "DELETE",
     }),
+
+  knowledge: () => request<KnowledgeOverview>("/api/knowledge"),
+  createCollection: (name: string, embedProvider: string, embedModel: string) =>
+    request<{ collection: KnowledgeCollection }>("/api/knowledge/collections", {
+      method: "POST",
+      body: JSON.stringify({ name, embedProvider, embedModel }),
+    }),
+  renameCollection: (id: string, name: string) =>
+    request<{ collection: KnowledgeCollection }>(
+      `/api/knowledge/collections/${id}/rename`,
+      { method: "POST", body: JSON.stringify({ name }) },
+    ),
+  deleteCollection: (id: string) =>
+    request<{ collections: KnowledgeCollection[] }>(`/api/knowledge/collections/${id}`, {
+      method: "DELETE",
+    }),
+  collectionDocuments: (id: string) =>
+    request<{ documents: KnowledgeDocument[] }>(
+      `/api/knowledge/collections/${id}/documents`,
+    ),
+  uploadDocument: (collectionId: string, name: string, content: string) =>
+    request<{ document: KnowledgeDocument }>(
+      `/api/knowledge/collections/${collectionId}/documents`,
+      { method: "POST", body: JSON.stringify({ name, content }) },
+    ),
+  deleteKnowledgeDocument: (id: string) =>
+    request<{ ok: boolean }>(`/api/knowledge/documents/${id}`, { method: "DELETE" }),
+  knowledgeJobs: () => request<{ jobs: IngestJob[] }>("/api/knowledge/jobs"),
+  clearKnowledgeJobs: () =>
+    request<{ jobs: IngestJob[] }>("/api/knowledge/jobs/clear", { method: "POST" }),
+  knowledgeSearch: (collectionId: string, query: string, topK?: number) =>
+    request<{ sources: SourceRef[] }>("/api/knowledge/search", {
+      method: "POST",
+      body: JSON.stringify(topK ? { collectionId, query, topK } : { collectionId, query }),
+    }),
+  loadEmbedding: (filename: string) =>
+    request<{ embedding: Omit<EmbeddingEngineInfo, "ready" | "budget"> }>(
+      "/api/knowledge/embedding/load",
+      { method: "POST", body: JSON.stringify({ filename }) },
+    ),
+  unloadEmbedding: () =>
+    request<{ embedding: Omit<EmbeddingEngineInfo, "ready" | "budget"> }>(
+      "/api/knowledge/embedding/unload",
+      { method: "POST" },
+    ),
 
   downloads: () => request<DownloadTask[]>("/api/downloads"),
   startDownload: (url: string, filename: string, sha256?: string | null) =>

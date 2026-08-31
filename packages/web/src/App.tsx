@@ -8,6 +8,7 @@ import { TelemetryPanel } from "./features/shell/TelemetryPanel";
 import { Notice } from "./features/shell/Notice";
 import { AgentView } from "./features/agent/AgentView";
 import { ChatView } from "./features/chat/ChatView";
+import { KnowledgeView } from "./features/knowledge/KnowledgeView";
 import { ModelsView } from "./features/models/ModelsView";
 import { SettingsView } from "./features/settings/SettingsView";
 
@@ -34,6 +35,7 @@ export function App() {
         {tab === "chat" && <ChatView />}
         {tab === "agent" && <AgentView />}
         {tab === "models" && <ModelsView />}
+        {tab === "knowledge" && <KnowledgeView />}
         {tab === "settings" && <SettingsView />}
         {tab === "system" && <SystemTab onAuthError={() => setAuthError(true)} />}
       </main>

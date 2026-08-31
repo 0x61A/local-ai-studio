@@ -10,6 +10,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@studio/shared": "*",
+    "pdfjs-dist": "^6.3.289",
     "zod": "^4.0.0"
   },
   "devDependencies": {

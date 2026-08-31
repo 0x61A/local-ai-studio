@@ -33,7 +33,10 @@
     "noConversations": "Henüz sohbet yok",
     "untitled": "Başlıksız",
     "delete": "Sil",
-    "usageTitle": "İstem + üretim belirteci"
+    "usageTitle": "İstem + üretim belirteci",
+    "knowledge": "Bilgi tabanı",
+    "noKnowledge": "Kullanma",
+    "sourcesUsed": "Kullanılan {{n}} kaynak"
   },
   "models": {
     "engine": "Yerel motor",
@@ -59,6 +62,47 @@
     "loadingFiles": "Dosyalar okunuyor…",
     "recommended": "önerilen",
     "download": "İndir"
+  },
+  "knowledge": {
+    "collections": "Koleksiyonlar",
+    "noCollections": "Henüz koleksiyon yok. Aşağıdan bir tane oluşturun.",
+    "newName": "Yeni koleksiyon",
+    "newNamePlaceholder": "Örnek: Ürün kılavuzları",
+    "provider": "Gömme sağlayıcısı",
+    "embedModel": "Gömme modeli",
+    "create": "Oluştur",
+    "deleteCollection": "Koleksiyonu sil",
+    "confirmDeleteCollection": "\"{{name}}\" koleksiyonu ve içindeki tüm belgeler silinsin mi?",
+    "documents": "Belgeler",
+    "noDocuments": "Bu koleksiyonda belge yok.",
+    "dropHere": "Dosyaları buraya sürükleyin",
+    "choose": "Dosya seç",
+    "uploading": "{{name}} yükleniyor…",
+    "remove": "Sil",
+    "pages": "{{n}} sayfa",
+    "chunks": "{{n}} parça",
+    "page": "s. {{n}}",
+    "test": "Aramayı dene",
+    "testNote": "Sorunuzu yazın; hangi belgeden hangi parçanın döndüğünü görün. Sohbette de aynı kaynaklar kullanılır.",
+    "search": "Ara",
+    "searchPlaceholder": "Belgelerde geçen bir şey sorun",
+    "embedEngine": "Gömme motoru",
+    "embedEngineNote": "Yerel gömme için ayrı bir model yüklenir; sohbet modeli yüklü kalmaya devam eder. Bulut sağlayıcısı seçerseniz bu gerekmez.",
+    "loadedEmbedModel": "Yüklü gömme modeli",
+    "noEmbedModels": "Bilgisayarınızda gömme modeli yok. Modeller sekmesinden bir tane indirin (örnek: nomic-embed-text, bge-m3).",
+    "starting": "Başlatılıyor…",
+    "status": {
+      "queued": "sırada",
+      "extracting": "metin çıkarılıyor",
+      "embedding": "gömülüyor",
+      "done": "hazır",
+      "error": "hata"
+    },
+    "matchedBy": {
+      "semantic": "anlamsal",
+      "keyword": "birebir terim",
+      "both": "ikisi de"
+    }
   },
   "settings": {
     "keys": "API anahtarları",

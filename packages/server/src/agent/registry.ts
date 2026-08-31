@@ -1,4 +1,5 @@
 import { fileTools } from "./tools/files.js";
+import { knowledgeTools } from "./tools/knowledge.js";
 import { shellTools } from "./tools/shell.js";
 import { webTools } from "./tools/web.js";
 import { toolParameters, type Tool } from "./types.js";
@@ -15,6 +16,7 @@ import type { ToolDefinition } from "../providers/types.js";
 const builtin: Tool<never>[] = [
   ...(fileTools as Tool<never>[]),
   ...(webTools as Tool<never>[]),
+  ...(knowledgeTools as Tool<never>[]),
   ...(shellTools as Tool<never>[]),
 ];
 

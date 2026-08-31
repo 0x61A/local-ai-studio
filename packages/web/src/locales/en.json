@@ -33,7 +33,10 @@
     "noConversations": "No chats yet",
     "untitled": "Untitled",
     "delete": "Delete",
-    "usageTitle": "Prompt + completion tokens"
+    "usageTitle": "Prompt + completion tokens",
+    "knowledge": "Knowledge base",
+    "noKnowledge": "Off",
+    "sourcesUsed": "{{n}} sources used"
   },
   "models": {
     "engine": "Local engine",
@@ -59,6 +62,47 @@
     "loadingFiles": "Reading files…",
     "recommended": "recommended",
     "download": "Download"
+  },
+  "knowledge": {
+    "collections": "Collections",
+    "noCollections": "No collections yet. Create one below.",
+    "newName": "New collection",
+    "newNamePlaceholder": "Example: Product manuals",
+    "provider": "Embedding provider",
+    "embedModel": "Embedding model",
+    "create": "Create",
+    "deleteCollection": "Delete collection",
+    "confirmDeleteCollection": "Delete the \"{{name}}\" collection and every document in it?",
+    "documents": "Documents",
+    "noDocuments": "No documents in this collection.",
+    "dropHere": "Drop files here",
+    "choose": "Choose file",
+    "uploading": "Uploading {{name}}…",
+    "remove": "Delete",
+    "pages": "{{n}} pages",
+    "chunks": "{{n}} chunks",
+    "page": "p. {{n}}",
+    "test": "Try a search",
+    "testNote": "Type a question and see which chunk comes back from which document. Chat uses the same sources.",
+    "search": "Search",
+    "searchPlaceholder": "Ask about something in your documents",
+    "embedEngine": "Embedding engine",
+    "embedEngineNote": "Local embedding loads a separate model; your chat model stays loaded. Not needed if you pick a cloud provider.",
+    "loadedEmbedModel": "Loaded embedding model",
+    "noEmbedModels": "No embedding model on this machine. Download one from the Models tab (for example nomic-embed-text, bge-m3).",
+    "starting": "Starting…",
+    "status": {
+      "queued": "queued",
+      "extracting": "extracting text",
+      "embedding": "embedding",
+      "done": "ready",
+      "error": "error"
+    },
+    "matchedBy": {
+      "semantic": "semantic",
+      "keyword": "exact term",
+      "both": "both"
+    }
   },
   "settings": {
     "keys": "API keys",
