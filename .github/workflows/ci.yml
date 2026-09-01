@@ -6,7 +6,14 @@ on:
 
 jobs:
   check:
-    runs-on: macos-latest
+    # Uc platform: sunucu kodu her ucunde de calisacak, testler her ucunde
+    # de gecmeli. Donanim tespiti ve surec yonetimi platform basina ayri
+    # dallar kullaniyor -- yalnizca macOS'ta kosmak onlari korumasiz birakir.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

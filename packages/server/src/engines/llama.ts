@@ -1,9 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
-import { RUNTIME_DIR } from "../config.js";
+import { setupCommand } from "../config.js";
 import { planLoad, release, reserve, type LoadPlan } from "../hardware/budget.js";
 import { readGgufInfo, type GgufInfo } from "../models/gguf.js";
-import { Engine, httpProbe, type EngineStatus } from "./supervisor.js";
+import { Engine, engineBinary, httpProbe, type EngineStatus } from "./supervisor.js";
 
 /**
  * llama.cpp motoru.
@@ -24,8 +24,7 @@ let lastLoad: { plan: LoadPlan; info: GgufInfo; modelPath: string } | null = nul
 let loadProgress = 0;
 
 export function llamaBinary(): string | null {
-  const candidate = path.join(RUNTIME_DIR, "engines", "llama", "llama-server");
-  return isExecutable(candidate) ? candidate : null;
+  return engineBinary("llama", "llama-server");
 }
 
 export function llamaLoadState(): {
@@ -55,7 +54,7 @@ export async function startLlama(
   const binary = llamaBinary();
   if (!binary) {
     throw new Error(
-      "llama.cpp motoru kurulu değil. `bash scripts/setup/fetch-llama.sh` çalıştırın.",
+      `llama.cpp motoru kurulu değil. \`${setupCommand("llama")}\` çalıştırın.`,
     );
   }
   if (!fs.existsSync(modelPath)) {
@@ -165,13 +164,4 @@ export function parseLoadProgress(line: string): number | null {
   }
   if (/all tensors loaded|model loaded|server is listening/i.test(line)) return 100;
   return null;
-}
-
-function isExecutable(target: string): boolean {
-  try {
-    fs.accessSync(target, fs.constants.X_OK);
-    return fs.statSync(target).isFile();
-  } catch {
-    return false;
-  }
 }

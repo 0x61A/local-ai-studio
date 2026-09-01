@@ -1,5 +1,6 @@
 import { useAgent } from "../../stores/agent";
 import { useUi } from "../../stores/ui";
+import { setupCommand } from "../../lib/platform";
 
 export function ToolPanel() {
   const t = useUi((s) => s.t);
@@ -17,7 +18,7 @@ export function ToolPanel() {
         ))}
       </ul>
       {status && !status.browser.installed && (
-        <p className="facts__note">{t("agent.browserMissing")}</p>
+        <p className="facts__note">{t("agent.browserMissing", { command: setupCommand("browser") })}</p>
       )}
       {status?.browser.open && (
         <p className="facts__note">

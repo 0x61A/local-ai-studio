@@ -26,7 +26,12 @@ function model(overrides: Partial<GgufInfo> = {}): GgufInfo {
 }
 
 function budget(freeMb: number): MemoryBudget {
-  return { budgetMb: freeMb, usedMb: 0, freeMb, unifiedMemory: true };
+  return { budgetMb: freeMb, usedMb: 0, freeMb, unifiedMemory: true, vramFreeMb: 0 };
+}
+
+/** Ayrık kart: sistem belleği ayrı, VRAM ayrı bütçe. */
+function discrete(freeMb: number, vramFreeMb: number): MemoryBudget {
+  return { budgetMb: freeMb, usedMb: 0, freeMb, unifiedMemory: false, vramFreeMb };
 }
 
 beforeEach(() => resetReservations());
@@ -82,20 +87,40 @@ describe("planLoad", () => {
     expect(plan.reason).toContain("nicemlenmiş");
   });
 
-  it("ayrık GPU'da katmanları bölebilir", () => {
-    const discrete = { ...budget(2500), unifiedMemory: false };
-    const plan = planLoad(model(), {}, discrete);
+  it("ayrık GPU'da katmanları VRAM'e göre böler", () => {
+    // 4 GB model 16 GB RAM'e sığar ama 6 GB VRAM'e bağlamıyla birlikte sığmaz.
+    const plan = planLoad(model(), {}, discrete(16_000, 6000));
+    expect(plan.fits).toBe(true);
     expect(plan.gpuLayers).toBeGreaterThan(0);
     expect(plan.gpuLayers).toBeLessThan(32);
+    expect(plan.reason).toContain("katman hızlandırıcıda");
+  });
+
+  it("VRAM bolsa ayrık kartta da tüm katmanları verir", () => {
+    const plan = planLoad(model(), {}, discrete(32_000, 24_000));
+    expect(plan.fits).toBe(true);
+    expect(plan.gpuLayers).toBe(-1);
+  });
+
+  it("VRAM ölçülemediyse katman taşımaz", () => {
+    // Ölçemediğimiz bir sınıra model itmek sessiz OOM olurdu.
+    const plan = planLoad(model(), {}, discrete(16_000, 0));
+    expect(plan.fits).toBe(true);
+    expect(plan.gpuLayers).toBe(0);
     expect(plan.reason).toContain("işlemcide");
   });
 
-  it("ayrık GPU'da bölmek anlamsızsa sığmıyor der", () => {
-    // 60 GB model, 4 GB VRAM: 32 katmanın yalnızca 1'i sığar -- işe yaramaz.
-    const discrete = { ...budget(4000), unifiedMemory: false };
-    const plan = planLoad(model({ fileSizeBytes: 60 * 1024 * 1024 * 1024 }), {}, discrete);
+  it("VRAM tek katmana bile yetmiyorsa işlemcide bırakır", () => {
+    const plan = planLoad(model(), {}, discrete(16_000, 100));
+    expect(plan.fits).toBe(true);
+    expect(plan.gpuLayers).toBe(0);
+  });
+
+  it("ayrık kartta da sistem belleği tavandır", () => {
+    // 60 GB model: VRAM bol olsa bile ağırlıkların kalanı RAM'e sığmıyor.
+    const plan = planLoad(model({ fileSizeBytes: 60 * 1024 * 1024 * 1024 }), {}, discrete(4000, 24_000));
     expect(plan.fits).toBe(false);
-    expect(plan.reason).toContain("kullanılabilir hız vermez");
+    expect(plan.reason).toContain("çalıştırılamayacak kadar büyük");
   });
 
   it("birleşik bellekte hiç sığmıyorsa açıkça söyler", () => {

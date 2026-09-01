@@ -76,3 +76,22 @@ export function ensureDataDirs(): void {
     fs.mkdirSync(dir, { recursive: true });
   }
 }
+
+// -- Platform ----------------------------------------------------------------
+
+export const IS_WINDOWS = process.platform === "win32";
+
+/** Windows'ta motor ikilileri `.exe` uzantili gelir. */
+export function binaryName(base: string): string {
+  return IS_WINDOWS ? `${base}.exe` : base;
+}
+
+/**
+ * Kullaniciya gosterilecek kurulum komutu. Hata mesajlari calistiramayacagi
+ * bir komut onermemeli: Windows'ta bash yok, PowerShell var.
+ */
+export function setupCommand(component: string): string {
+  return IS_WINDOWS
+    ? `powershell -ExecutionPolicy Bypass -File scripts\\setup\\fetch.ps1 ${component}`
+    : `bash scripts/setup/fetch.sh ${component}`;
+}

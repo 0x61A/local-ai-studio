@@ -1,0 +1,2 @@
+# Windows toplu is dosyalari CRLF ister; cmd.exe LF ile bazi durumlarda satiri yanlis okur.
+*.bat text eol=crlf

@@ -169,7 +169,7 @@
     "transcribing": "Yazıya dökülüyor…",
     "micDenied": "Mikrofon izni verilmedi. Tarayıcı ayarlarından izin verin.",
     "detected": "Dil: {{lang}} · {{ms}} sn",
-    "noWhisper": "whisper.cpp bulunamadı. macOS için hazır ikili yayımlanmıyor; `scripts/setup/fetch-whisper.sh` seçenekleri anlatır. Anahtarınız varsa bulut sağlayıcısını seçebilirsiniz.",
+    "noWhisper": "whisper.cpp bulunamadı. Kurmak için: `{{command}}` — macOS için hazır ikili yayımlanmadığından orada seçenekleri anlatır. Anahtarınız varsa bulut sağlayıcısını seçebilirsiniz.",
     "noSpeechModels": "Konuşma modeli yok. ggml-*.bin dosyasını şu klasöre koyun: {{dir}}",
     "text": "Metin",
     "textPlaceholder": "Seslendirilecek metni yazın",
@@ -179,12 +179,12 @@
     "rateDefault": "varsayılan",
     "speakButton": "Seslendir",
     "speaking": "Seslendiriliyor…",
-    "ttsUnavailable": "Yazıdan sese şu an yalnızca macOS'ta çalışıyor. Windows ve Linux Faz 6'da gelecek.",
+    "ttsUnavailable": "Bu makinede kurulu bir konuşma sentezleyici bulunamadı. macOS ve Windows'ta sistemin kendi sentezleyicisi kullanılır; Linux'ta `espeak-ng` kurarsanız devreye girer. Bulut sağlayıcısı da bir seçenek.",
     "outputs": "Üretilen sesler"
   },
   "settings": {
     "keys": "API anahtarları",
-    "keysNote": "Anahtarlar şifrelenerek saklanır ve ana anahtar macOS Anahtar Zinciri'nde tutulur. Bir kez kaydedildikten sonra tam değeri hiçbir yerde gösterilmez.",
+    "keysNote": "Anahtarlar şifrelenerek saklanır; ana anahtar macOS'ta Anahtar Zinciri'nde, Windows'ta DPAPI ile hesabınıza bağlı olarak, Linux'ta yalnızca size okuma izni verilen bir dosyada tutulur. Bir kez kaydedildikten sonra tam değeri hiçbir yerde gösterilmez.",
     "defaults": "Varsayılanlar",
     "systemPrompt": "Sistem istemi",
     "systemPromptPlaceholder": "Modele her sohbette verilecek talimat…",
@@ -269,7 +269,7 @@
       "exec": "komut",
       "computer": "tarayıcı"
     },
-    "browserMissing": "Tarayıcı araçları kurulu değil. Kurmak için: bash scripts/setup/fetch-playwright.sh",
+    "browserMissing": "Tarayıcı araçları kurulu değil. Kurmak için: {{command}}",
     "plan": {
       "toggle": "Planla",
       "hint": "Görevi adımlara böler ve her adımı ayrı bir alt ajanla çalıştırır. Uzun işler için.",

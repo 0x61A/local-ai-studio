@@ -1,6 +1,7 @@
 import fsp from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
+import { setupCommand } from "../../config.js";
 import { listSpeechModels, whisperBinary } from "../../engines/whisper.js";
 import { transcribeWav } from "../../audio/transcribe.js";
 import { listVoices, speak, ttsAvailable } from "../../audio/tts.js";
@@ -30,7 +31,7 @@ export const transcribeAudio: Tool<{ path: string; language?: string }> = define
     if (!whisperBinary()) {
       return {
         content:
-          "whisper.cpp kurulu değil; ses yazıya dökülemiyor. Kullanıcının `scripts/setup/fetch-whisper.sh` çalıştırması gerekiyor.",
+          `whisper.cpp kurulu değil; ses yazıya dökülemiyor. Kullanıcının \`${setupCommand("whisper")}\` çalıştırması gerekiyor.`,
         isError: true,
       };
     }

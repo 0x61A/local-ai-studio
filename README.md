@@ -14,36 +14,59 @@ Node.js + TypeScript tek calisma zamani; agir hesap native motorlarda
 | 3 | RAG / bilgi tabani (PDF, DOCX, Markdown, kod) | tamamlandi |
 | 4 | Gorsel uretimi + ses (STT/TTS) | tamamlandi |
 | 5 | Cok-ajanli planlayici, bilgisayar kullanimi | tamamlandi |
-| 6 | Windows + Linux | siradaki |
+| 6 | Windows + Linux, uc platformlu CI | tamamlandi |
 
 ## Calistirma
+
+macOS:
 
 ```bash
 ./start.command
 ```
 
+Linux:
+
+```bash
+./start-linux.sh
+```
+
+Windows: `start.bat` dosyasina cift tiklayin.
+
 Ilk calistirmada tasinabilir Node.js `runtime/node` altina indirilir
 (SHA256 dogrulamali). Sisteme hicbir sey kurulmaz.
 
-Motorlar ayri ayri indirilir; yalnizca kullanacaklarinizi kurun:
+Motorlar ayri ayri indirilir; yalnizca kullanacaklarinizi kurun. macOS ve
+Linux'ta:
 
 ```bash
-bash scripts/setup/fetch-llama.sh
+bash scripts/setup/fetch.sh llama
 ```
 
 ```bash
-bash scripts/setup/fetch-sd.sh
+bash scripts/setup/fetch.sh sd
 ```
 
 ```bash
-bash scripts/setup/fetch-whisper.sh
+bash scripts/setup/fetch.sh whisper
 ```
 
 Tarayici otomasyonu (ajanin gercek bir sayfada gezinmesi) istege bagli:
 
 ```bash
-bash scripts/setup/fetch-playwright.sh
+bash scripts/setup/fetch.sh browser
 ```
+
+Windows'ta ayni islerin PowerShell karsiligi:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\setup\fetch.ps1 llama
+```
+
+Hangi yapinin inecegine donanim karar verir: NVIDIA karti varsa CUDA,
+AMD/Intel'de Vulkan, hicbiri yoksa CPU yapisi. Zorlamak icin
+`--variant cuda|vulkan|cpu` ekleyin. CUDA yapisi Windows'ta calisma zamani
+DLL'lerini ayri bir varlikta yolluyor; onu da ayni klasore acariz, yoksa
+motor `0xC0000135` ile aciliyor bile.
 
 Sonra arayuzdeki **Modeller** sekmesinden Hugging Face'te arama yapip tek
 tikla model indirebilirsiniz. Bulut saglayicilari (OpenAI, Anthropic,
@@ -88,7 +111,7 @@ Gemini, OpenRouter) icin **Ayarlar** sekmesinden API anahtari ekleyin.
   numarali ogeye tiklama, forma yazma, ekran goruntusu. `fetch_url` statik
   metin icin; JavaScript ile uretilen sayfalar ve oturum gerektiren akislar
   icin bu. Her eylem onay kapisindan gecer, okuma dahil. Playwright pakete
-  gomulmez, `scripts/setup/fetch-playwright.sh` isteyene kurar.
+  gomulmez, `scripts/setup/fetch.sh browser` isteyene kurar.
 - **Ayarlar**: API anahtarlari (sifreli saklanir), web arama saglayicilari,
   MCP sunuculari, sistem istemi, sicaklik, belirtec siniri
 - **Sistem**: donanim bilgisi ve canli kullanim
@@ -119,10 +142,13 @@ npm run dev:web     # vite dev sunucusu, /api isteklerini sunucuya proxy'ler
   dogrulanir; capraz-site istekleri ve DNS rebinding reddedilir.
 - Dosyaya dokunan her yol `resolveInside()` uzerinden gecer; sembolik bag
   dahil kok disina cikan istek 403 doner.
-- **API anahtarlari** AES-256-GCM ile sifrelenir; ana anahtar macOS
-  Anahtar Zinciri'nde tutulur. Anahtarin kendisi hicbir zaman komut satiri
-  argumani olmaz (`ps` ciktisina sizardi) ve istemciye yalnizca maskesi
-  doner.
+- **API anahtarlari** AES-256-GCM ile sifrelenir; ana anahtar isletim
+  sisteminin kendi korumasinda durur: macOS'ta Anahtar Zinciri, Windows'ta
+  DPAPI (kullanici hesabina bagli; baska hesap ya da baska makine blob'u
+  acamaz), Linux'ta 0600 izinli dosya -- orada dosya izni gercekten
+  uygulaniyor, Windows'ta `chmod` NTFS ACL'ine dokunmadigi icin DPAPI
+  gerekiyor. Anahtarin kendisi hicbir zaman komut satiri argumani olmaz
+  (`ps` ciktisina sizardi) ve istemciye yalnizca maskesi doner.
 - **Model indirmeleri** konak beyaz listesinden gecer ve Hugging Face'in
   bildirdigi SHA256 ile dogrulanir.
 - **Ajan sandbox'i**: tum dosya araclari secilen calisma alani klasorune
@@ -135,7 +161,9 @@ npm run dev:web     # vite dev sunucusu, /api isteklerini sunucuya proxy'ler
   etiketlenerek verilir.
 - **Motor surecleri** sunucu kapaninca durdurulur; cokme sonrasi kalan
   yetimler acilista toplanir (yalnizca kendi ikili dosyamizi calistiran
-  surecler, kimlik `ps` ciktisiyla dogrulanarak).
+  surecler; kimlik Unix'te `ps`, Windows'ta `tasklist` ciktisiyla
+  dogrulanir -- referans projedeki `taskkill /F /IM node.exe` gibi kor bir
+  oldurme asla yapilmaz).
 
 - **Belge yukleme** yalnizca tarayicidan secilen dosyayla yapilir; sunucuya
   "su yoldaki dosyayi indeksle" dedirtilemez. Boyle bir uc, yerel istekler
@@ -163,7 +191,7 @@ Bu maddelerin cogu `packages/server/test/server.test.ts` ve
 ### Bilinen bosluk: tarayici otomasyonu isteğe bagli
 
 Playwright + Chromium ~150 MB ve kullanicilarin cogu tarayici otomasyonu
-istemiyor; pakete gomulmez. `bash scripts/setup/fetch-playwright.sh`
+istemiyor; pakete gomulmez. `bash scripts/setup/fetch.sh browser`
 `runtime/engines/playwright/` altina kurar -- sisteme degil, silmek klasoru
 silmek demek. Kurulu degilken tarayici araclari listede gorunur ama
 cagrildiklarinda nasil kurulacagini soyler, onay bile istemez.
@@ -173,10 +201,26 @@ cagrildiklarinda nasil kurulacagini soyler, onay bile istemez.
 whisper.cpp macOS icin hazir ikili yayimlamiyor (Linux ve Windows icin
 yayimliyor). Sisteme paket kurmadigimiz icin macOS'ta uc secenek var:
 PATH'te hazir bir `whisper-cli` varsa onu kullaniriz, kendiniz kurabilir
-ya da bulut saglayicisini secebilirsiniz. `scripts/setup/fetch-whisper.sh`
+ya da bulut saglayicisini secebilirsiniz. `scripts/setup/fetch.sh whisper`
 bunu ekranda anlatir. Referans proje ayni bosluğu kurulum sirasinda
 Homebrew ile `whisper-cpp` kurarak kapatiyor -- yani kendi sifir kurulum
 vaadini boziyor.
+
+### Platform farklari
+
+Cekirdek her ucunde ayni; farklar isletim sisteminin verdigi seylerde:
+
+| Konu | macOS | Windows | Linux |
+| --- | --- | --- | --- |
+| Hizlandirici | Metal (birlesik bellek) | CUDA / Vulkan | CUDA / Vulkan |
+| VRAM olcumu | birlesik bellegin %75'i | `nvidia-smi`; digerinde bilinmiyor | `nvidia-smi` / amdgpu sysfs |
+| Seslendirme | `say` | SAPI (System.Speech) | `espeak-ng` (PATH'te varsa) |
+| Konusma tanima | PATH'teki `whisper-cli` | hazir ikili | hazir ikili |
+| Ana anahtar | Anahtar Zinciri | DPAPI | 0600 dosya |
+| Baslatici | `start.command` | `start.bat` | `start-linux.sh` |
+
+VRAM'i olcemedigimiz kartta katman bolmeyiz: model islemcide calisir.
+Tahmini bir VRAM sayisina gore katman tasimak sessiz OOM demek olurdu.
 
 ## Lisans
 

@@ -4,6 +4,7 @@ import { useAudio } from "../../stores/audio";
 import { useUi } from "../../stores/ui";
 import { AudioPlayer } from "./AudioPlayer";
 import { Recorder } from "./Recorder";
+import { setupCommand } from "../../lib/platform";
 
 const LANGUAGES = ["auto", "tr", "en", "de", "fr", "es", "ar", "ru"];
 
@@ -75,7 +76,7 @@ function SpeechToText() {
         <p className="facts__note">
           {speech?.binary
             ? t("audio.noSpeechModels", { dir: speech.modelsDir })
-            : t("audio.noWhisper")}
+            : t("audio.noWhisper", { command: setupCommand("whisper") })}
         </p>
       )}
 

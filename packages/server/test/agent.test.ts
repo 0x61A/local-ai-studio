@@ -413,7 +413,9 @@ describe("dosya araçları sandbox", () => {
   it("sembolik bağla kaçmayı reddeder", async () => {
     const outside = fs.mkdtempSync(path.join(os.tmpdir(), "studio-outside-"));
     fs.writeFileSync(path.join(outside, "gizli.txt"), "gizli");
-    fs.symlinkSync(outside, path.join(workspace, "kacis"));
+    // "junction": Windows'ta dizin bagi olusturmak yonetici yetkisi ister,
+    // birlesme noktasi istemez. Diger platformlarda tur yok sayilir.
+    fs.symlinkSync(outside, path.join(workspace, "kacis"), "junction");
     try {
       await expect(readFile.run({ path: "kacis/gizli.txt" }, context())).rejects.toThrow(
         /çalışma alanının dışında/,

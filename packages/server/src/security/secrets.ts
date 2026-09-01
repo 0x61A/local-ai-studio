@@ -15,8 +15,10 @@ import { getSetting, setSetting, deleteSetting } from "../store/settings.js";
  * add-generic-password -w <anahtar>` çağırmak anahtarı oraya sızdırırdı.
  *
  * Bunun yerine:
- *  1. Rastgele 32 baytlık bir ana anahtar üretilir ve macOS Keychain'de
- *     saklanır (fallback: 0600 izinli dosya).
+ *  1. Rastgele 32 baytlık bir ana anahtar üretilir ve işletim sisteminin
+ *     kendi korumasına verilir: macOS'ta Keychain, Windows'ta DPAPI
+ *     (kullanıcı hesabına bağlı şifreleme), Linux'ta 0600 izinli dosya --
+ *     orada dosya izni gerçekten uygulanır.
  *  2. API anahtarları bu ana anahtarla AES-256-GCM ile şifrelenip
  *     veritabanına yazılır.
  *
@@ -151,6 +153,46 @@ function masterKey(): Buffer {
   return created;
 }
 
+/**
+ * Windows'ta dosya izni (0600) fiilen bir şey ifade etmiyor: chmod NTFS
+ * ACL'lerine dokunmuyor. Anahtarı düz yazmak yerine DPAPI'ye veriyoruz --
+ * çözmek kullanıcı hesabının oturumunu gerektirir, başka hesap ya da başka
+ * makine blob'u açamaz. Değerler argv'ye değil ortam değişkenine konur;
+ * modülün en baştaki kuralı bu.
+ */
+const DPAPI_PREFIX = "dpapi:";
+
+function protectWithDpapi(encoded: string): string | null {
+  const output = runPowershell(
+    "ConvertTo-SecureString -String $env:STUDIO_MASTER_KEY -AsPlainText -Force | ConvertFrom-SecureString",
+    { STUDIO_MASTER_KEY: encoded },
+  );
+  return output ? output.trim() : null;
+}
+
+function unprotectWithDpapi(blob: string): string | null {
+  const output = runPowershell(
+    "$s = ConvertTo-SecureString -String $env:STUDIO_MASTER_BLOB; " +
+      "[Runtime.InteropServices.Marshal]::PtrToStringAuto(" +
+      "[Runtime.InteropServices.Marshal]::SecureStringToBSTR($s))",
+    { STUDIO_MASTER_BLOB: blob },
+  );
+  return output ? output.trim() : null;
+}
+
+function runPowershell(script: string, env: Record<string, string>): string | null {
+  try {
+    return execFileSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", script], {
+      encoding: "utf8",
+      timeout: 10_000,
+      stdio: ["ignore", "pipe", "ignore"],
+      env: { ...process.env, ...env },
+    });
+  } catch {
+    return null;
+  }
+}
+
 function readMasterKey(): Buffer | null {
   if (os.platform() === "darwin") {
     const fromKeychain = runSecurity([
@@ -163,7 +205,12 @@ function readMasterKey(): Buffer | null {
   }
   try {
     const raw = fs.readFileSync(FALLBACK_KEY_FILE, "utf8").trim();
-    if (raw) return Buffer.from(raw, "base64");
+    if (!raw) return null;
+    if (raw.startsWith(DPAPI_PREFIX)) {
+      const decoded = unprotectWithDpapi(raw.slice(DPAPI_PREFIX.length));
+      return decoded ? Buffer.from(decoded, "base64") : null;
+    }
+    return Buffer.from(raw, "base64");
   } catch {
     // Dosya yok: ilk çalıştırma.
   }
@@ -187,9 +234,22 @@ function writeMasterKey(key: Buffer): void {
     );
   }
 
+  let payload = encoded;
+  if (os.platform() === "win32") {
+    const protectedBlob = protectWithDpapi(encoded);
+    if (protectedBlob) {
+      payload = `${DPAPI_PREFIX}${protectedBlob}`;
+    } else {
+      console.warn(
+        "  [secrets] DPAPI kullanılamadı; ana anahtar korumasız dosyaya yazılıyor.",
+      );
+    }
+  }
+
   fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(FALLBACK_KEY_FILE, encoded, { mode: 0o600 });
-  fs.chmodSync(FALLBACK_KEY_FILE, 0o600);
+  fs.writeFileSync(FALLBACK_KEY_FILE, payload, { mode: 0o600 });
+  // chmod Windows'ta ACL'e dokunmaz; orada koruma DPAPI katmanından geliyor.
+  if (os.platform() !== "win32") fs.chmodSync(FALLBACK_KEY_FILE, 0o600);
 }
 
 /** Başarıda stdout, başarısızlıkta null. Kabuk kullanılmaz. */

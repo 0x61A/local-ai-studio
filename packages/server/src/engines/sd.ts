@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-import { IMAGE_MODELS_DIR, RUNTIME_DIR } from "../config.js";
+import { IMAGE_MODELS_DIR, setupCommand } from "../config.js";
 import { getBudget, release, reserve } from "../hardware/budget.js";
-import { Engine, httpProbe, type EngineStatus } from "./supervisor.js";
+import { Engine, engineBinary, httpProbe, type EngineStatus } from "./supervisor.js";
 
 /**
  * stable-diffusion.cpp motoru.
@@ -28,8 +28,7 @@ export const sdEngine = new Engine(ENGINE_ID);
 let loadedModel: string | null = null;
 
 export function sdBinary(): string | null {
-  const candidate = path.join(RUNTIME_DIR, "engines", "sd", "sd-server");
-  return isExecutable(candidate) ? candidate : null;
+  return engineBinary("sd", "sd-server");
 }
 
 export function sdBaseUrl(): string | null {
@@ -69,7 +68,7 @@ export async function startSd(filename: string): Promise<EngineStatus> {
   const binary = sdBinary();
   if (!binary) {
     throw new Error(
-      "stable-diffusion.cpp motoru kurulu değil. `bash scripts/setup/fetch-sd.sh` çalıştırın.",
+      `stable-diffusion.cpp motoru kurulu değil. \`${setupCommand("sd")}\` çalıştırın.`,
     );
   }
   const modelPath = path.join(IMAGE_MODELS_DIR, path.basename(filename));
@@ -126,15 +125,6 @@ export function buildSdArgs(modelPath: string, port: number): string[] {
     "--lora-model-dir", path.join(IMAGE_MODELS_DIR, "lora"),
     "--hires-upscalers-dir", path.join(IMAGE_MODELS_DIR, "upscaler"),
   ];
-}
-
-function isExecutable(target: string): boolean {
-  try {
-    fs.accessSync(target, fs.constants.X_OK);
-    return fs.statSync(target).isFile();
-  } catch {
-    return false;
-  }
 }
 
 function safeSize(target: string): number {

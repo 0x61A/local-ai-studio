@@ -169,7 +169,7 @@
     "transcribing": "Transcribing…",
     "micDenied": "Microphone permission denied. Allow it in your browser settings.",
     "detected": "Language: {{lang}} · {{ms}} s",
-    "noWhisper": "whisper.cpp not found. No prebuilt macOS binary is published; `scripts/setup/fetch-whisper.sh` explains the options. With an API key you can use the cloud provider instead.",
+    "noWhisper": "whisper.cpp not found. To install: `{{command}}` — on macOS no prebuilt binary is published, so it explains the options there. With an API key you can use the cloud provider instead.",
     "noSpeechModels": "No speech model. Put a ggml-*.bin file in: {{dir}}",
     "text": "Text",
     "textPlaceholder": "Type the text to speak",
@@ -179,12 +179,12 @@
     "rateDefault": "default",
     "speakButton": "Speak",
     "speaking": "Speaking…",
-    "ttsUnavailable": "Text to speech currently works on macOS only. Windows and Linux come in phase 6.",
+    "ttsUnavailable": "No speech synthesizer was found on this machine. macOS and Windows use the built-in one; on Linux, install `espeak-ng` and it will be used. A cloud provider is also an option.",
     "outputs": "Generated audio"
   },
   "settings": {
     "keys": "API keys",
-    "keysNote": "Keys are stored encrypted, with the master key held in the macOS Keychain. Once saved, the full value is never displayed anywhere.",
+    "keysNote": "Keys are stored encrypted; the master key lives in the macOS Keychain, in DPAPI bound to your Windows account, or in a file only you can read on Linux. Once saved, the full value is never displayed anywhere.",
     "defaults": "Defaults",
     "systemPrompt": "System prompt",
     "systemPromptPlaceholder": "Instruction given to the model in every chat…",
@@ -269,7 +269,7 @@
       "exec": "command",
       "computer": "browser"
     },
-    "browserMissing": "Browser tools are not installed. To install: bash scripts/setup/fetch-playwright.sh",
+    "browserMissing": "Browser tools are not installed. To install: {{command}}",
     "plan": {
       "toggle": "Plan",
       "hint": "Splits the task into steps and runs each one as a separate sub-agent. For long jobs.",

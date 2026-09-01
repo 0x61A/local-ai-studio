@@ -1,7 +1,8 @@
 import { execFileSync, spawn, type ChildProcess } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
-import { ENGINE_PID_FILE } from "../config.js";
+import path from "node:path";
+import { ENGINE_PID_FILE, IS_WINDOWS, RUNTIME_DIR, binaryName } from "../config.js";
 
 /**
  * Motor süreç yöneticisi.
@@ -214,6 +215,39 @@ export class Engine {
   }
 }
 
+// -- İkili dosya çözümleme ----------------------------------------------------
+
+/**
+ * `runtime/engines/<motor>/<ad>` -- Windows'ta `.exe` uzantısıyla. Üç motor da
+ * aynı düzeni kullanıyor; uzantı kararı tek yerde kalsın diye burada.
+ */
+export function engineBinary(engineDir: string, base: string): string | null {
+  const candidate = path.join(RUNTIME_DIR, "engines", engineDir, binaryName(base));
+  return isExecutable(candidate) ? candidate : null;
+}
+
+/** Kullanıcının kendi kurduğu ikili: yalnızca PATH'e bakarız, sisteme kurmayız. */
+export function findOnPath(base: string): string | null {
+  const name = binaryName(base);
+  for (const dir of (process.env["PATH"] ?? "").split(path.delimiter)) {
+    if (!dir) continue;
+    const candidate = path.join(dir, name);
+    if (isExecutable(candidate)) return candidate;
+  }
+  return null;
+}
+
+export function isExecutable(target: string): boolean {
+  try {
+    // Windows'ta X_OK her dosya için geçer; orada ayırt edici olan `.exe`
+    // uzantısı, onu da binaryName() koyuyor.
+    fs.accessSync(target, fs.constants.X_OK);
+    return fs.statSync(target).isFile();
+  } catch {
+    return false;
+  }
+}
+
 // -- Yetim süreç toplama ------------------------------------------------------
 
 interface PidRecord {
@@ -279,10 +313,24 @@ export function reapOrphans(): number {
   return reaped;
 }
 
-/** Kimlik gerçekten bizim ikili dosyamızı mı çalıştırıyor? */
+/**
+ * Kimlik gerçekten bizim ikili dosyamızı mı çalıştırıyor?
+ *
+ * Unix'te tam komut satırına bakarız. Windows'ta `tasklist` yalnızca imaj
+ * adını verir (komut satırı için WMI gerekirdi, ~500 ms); ikili adı zaten
+ * `llama-server.exe` gibi bize özgü olduğu için bu kadarı yeter.
+ */
 function isOurProcess(pid: number, binary: string): boolean {
   if (!Number.isInteger(pid) || pid <= 1) return false;
   try {
+    if (IS_WINDOWS) {
+      const output = execFileSync(
+        "tasklist",
+        ["/FI", `PID eq ${pid}`, "/FO", "CSV", "/NH"],
+        { encoding: "utf8", timeout: 5000, stdio: ["ignore", "pipe", "ignore"] },
+      );
+      return parseTasklistImage(output) === path.basename(binary).toLowerCase();
+    }
     const command = execFileSync("ps", ["-o", "command=", "-p", String(pid)], {
       encoding: "utf8",
       timeout: 5000,
@@ -292,6 +340,18 @@ function isOurProcess(pid: number, binary: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * `tasklist /FO CSV /NH` satırı: `"llama-server.exe","1234","Console","1","1.024 K"`.
+ * Süreç yoksa tasklist hata değil bilgi metni basar ("INFO: No tasks..."),
+ * o yüzden tırnakla başlamayan satır eşleşmemeli.
+ */
+export function parseTasklistImage(output: string): string | null {
+  const line = output.split("\n").map((l) => l.trim()).find((l) => l.startsWith('"'));
+  if (!line) return null;
+  const match = /^"([^"]+)"/.exec(line);
+  return match?.[1] ? match[1].toLowerCase() : null;
 }
 
 // -- Yardımcılar --------------------------------------------------------------
@@ -341,6 +401,13 @@ export function describeExit(
 ): string {
   const hint = (() => {
     if (signal === "SIGKILL") return "Süreç zorla sonlandırıldı (bellek yetersizliği olabilir).";
+    // Windows NTSTATUS kodları: kullanıcıya "kod 3221225781" hiçbir şey
+    // anlatmaz, oysa hepsi tek bir somut eksiği gösterir.
+    if (code === 3221225781) {
+      return "Gerekli DLL bulunamadı. CUDA sürümünde `cudart` paketi motor klasöründe olmalı; kurulumu yeniden çalıştırın.";
+    }
+    if (code === 3221225595) return "İkili dosya bu Windows mimarisiyle uyumsuz (32/64 bit uyuşmazlığı).";
+    if (code === 3221225477) return "Bellek erişim hatası; model mimarisi bu motorla uyumsuz olabilir.";
     if (code === 127) return "İkili dosya bulunamadı veya bağımlı kütüphane eksik.";
     if (code === 126) return "İkili dosya çalıştırılabilir değil (chmod +x gerekebilir).";
     if (code === 1) return "Motor hata ile çıktı; model dosyası bozuk veya uyumsuz olabilir.";
@@ -353,7 +420,7 @@ export function describeExit(
     .slice(-3);
 
   const detail = relevant.length ? `\n${relevant.join("\n")}` : "";
-  return `${hint} (${binary.split("/").pop()}, kod ${code ?? "yok"}${signal ? `, sinyal ${signal}` : ""})${detail}`;
+  return `${hint} (${path.basename(binary)}, kod ${code ?? "yok"}${signal ? `, sinyal ${signal}` : ""})${detail}`;
 }
 
 export async function findFreePort(preferred: number, attempts = 50): Promise<number> {

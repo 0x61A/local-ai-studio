@@ -1,7 +1,8 @@
 import { execFile } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { AUDIO_MODELS_DIR, RUNTIME_DIR } from "../config.js";
+import { AUDIO_MODELS_DIR, setupCommand } from "../config.js";
+import { engineBinary, findOnPath } from "./supervisor.js";
 
 /**
  * whisper.cpp konuşma tanıma.
@@ -36,9 +37,7 @@ export interface TranscriptResult {
 }
 
 export function whisperBinary(): string | null {
-  const bundled = path.join(RUNTIME_DIR, "engines", "whisper", "whisper-cli");
-  if (isExecutable(bundled)) return bundled;
-  return findOnPath("whisper-cli");
+  return engineBinary("whisper", "whisper-cli") ?? findOnPath("whisper-cli");
 }
 
 export function listSpeechModels(): Array<{ filename: string; sizeBytes: number }> {
@@ -74,7 +73,7 @@ export async function transcribe(
   const binary = whisperBinary();
   if (!binary) {
     throw new Error(
-      "whisper.cpp kurulu değil. `bash scripts/setup/fetch-whisper.sh` çalıştırın " +
+      `whisper.cpp kurulu değil. \`${setupCommand("whisper")}\` çalıştırın ` +
         "ya da Ayarlar'dan bir bulut sağlayıcısı seçin.",
     );
   }
@@ -182,24 +181,6 @@ function run(binary: string, args: string[]): Promise<string> {
       },
     );
   });
-}
-
-function findOnPath(command: string): string | null {
-  for (const dir of (process.env["PATH"] ?? "").split(path.delimiter)) {
-    if (!dir) continue;
-    const candidate = path.join(dir, command);
-    if (isExecutable(candidate)) return candidate;
-  }
-  return null;
-}
-
-function isExecutable(target: string): boolean {
-  try {
-    fs.accessSync(target, fs.constants.X_OK);
-    return fs.statSync(target).isFile();
-  } catch {
-    return false;
-  }
 }
 
 function safeSize(target: string): number {

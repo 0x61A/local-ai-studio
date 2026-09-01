@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Local AI Studio - macOS baslatici. Cift tiklayin veya ./start.command calistirin.
+# Local AI Studio - macOS ve Linux baslatici. Cift tiklayin ya da calistirin.
+# (Linux'ta ayni dosya start-linux.sh adiyla da duruyor; Windows: start.bat)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -29,6 +30,12 @@ fi
 
 export STUDIO_ROOT="$ROOT"
 
+# Tarayiciyi acan komut platforma gore degisir; ikisi de yoksa URL'yi basariz.
+case "$(uname -s)" in
+  Darwin) OPENER="open" ;;
+  *)      OPENER="xdg-open" ;;
+esac
+
 # 3) Sunucuyu baslat, STUDIO_URL satirini yakalayip tarayiciyi ac.
 #    Yalnizca kendi baslattigimiz PID'i yonetiriz -- baska surec oldurmeyiz.
 LOG_PIPE="$(mktemp -u "${TMPDIR:-/tmp}/studio.XXXXXX")"
@@ -56,7 +63,12 @@ while IFS= read -r line; do
     STUDIO_URL=*)
       if [[ "$opened" -eq 0 ]]; then
         opened=1
-        open "${line#STUDIO_URL=}" >/dev/null 2>&1 || true
+        url="${line#STUDIO_URL=}"
+        if command -v "$OPENER" >/dev/null 2>&1; then
+          "$OPENER" "$url" >/dev/null 2>&1 || true
+        else
+          printf 'Tarayicida acin: %s\n' "$url"
+        fi
       fi
       ;;
     *) printf '%s\n' "$line" ;;

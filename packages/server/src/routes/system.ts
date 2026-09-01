@@ -1,7 +1,7 @@
 import { getSystemInfo, getTelemetry } from "../hardware/detect.js";
 import { getBudget, reservedMb } from "../hardware/budget.js";
 import { llamaEngine } from "../engines/llama.js";
-import { APP_VERSION } from "../config.js";
+import { APP_VERSION, setupCommand } from "../config.js";
 import { llamaBinary } from "../engines/llama.js";
 import type { HealthStatus } from "@studio/shared";
 import type { Router } from "../http/router.js";
@@ -33,7 +33,7 @@ export function registerSystemRoutes(router: Router): void {
       issues.push({
         code: "llama_missing",
         message:
-          "llama.cpp motoru kurulu değil. `bash scripts/setup/fetch-llama.sh` çalıştırın.",
+          `llama.cpp motoru kurulu değil. \`${setupCommand("llama")}\` çalıştırın.`,
       });
     }
     if (engine.state === "error" && engine.error) {

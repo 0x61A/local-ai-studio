@@ -1,14 +1,14 @@
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { RUNTIME_DIR } from "../config.js";
+import { RUNTIME_DIR, setupCommand } from "../config.js";
 
 /**
  * Playwright yükleyici.
  *
  * Playwright pakete gömülmez: yalnızca `playwright-core` ~2 MB ama yanında
  * indirdiği Chromium ~150 MB ve kullanıcıların çoğu tarayıcı otomasyonu
- * istemiyor. `scripts/setup/fetch-playwright.sh` isteyene kurar; kurulu
+ * istemiyor. `scripts/setup/fetch.sh browser` isteyene kurar; kurulu
  * değilse araçlar listede görünür ama çağrıldığında nasıl kurulacağını söyler.
  *
  * Modül `runtime/` altından çalışma anında yüklenir. Bundler'ın statik
@@ -27,7 +27,7 @@ const ENTRY = path.join(PLAYWRIGHT_DIR, "node_modules", "playwright-core", "inde
 const BROWSERS_DIR = path.join(PLAYWRIGHT_DIR, "browsers");
 
 export const INSTALL_HINT =
-  "Tarayıcı otomasyonu kurulu değil. `bash scripts/setup/fetch-playwright.sh` çalıştırın.";
+  `Tarayıcı otomasyonu kurulu değil. \`${setupCommand("browser")}\` çalıştırın.`;
 
 /** Playwright'ın ihtiyaç duyduğu asgari yüzey. Tam tipleri içe aktarmıyoruz
  *  çünkü paket derleme anında kurulu olmayabilir. */

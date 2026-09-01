@@ -1,5 +1,5 @@
 import { estimateMemoryMb, type GgufInfo } from "../models/gguf.js";
-import { getAvailableMemoryMb, getGpuInfo } from "./detect.js";
+import { getAvailableMemoryMb, getGpuInfo, getVramUsedMb } from "./detect.js";
 
 /**
  * Bellek bütçe yöneticisi.
@@ -14,6 +14,8 @@ import { getAvailableMemoryMb, getGpuInfo } from "./detect.js";
 
 /** Sistemin nefes alması için ayrılan pay. */
 const SYSTEM_RESERVE_MB = 2048;
+/** Masaüstü ve pencere yöneticisi de VRAM tüketir; tamamını isteyemeyiz. */
+const VRAM_RESERVE_MB = 512;
 /** Bağlam küçültme merdiveni; yukarıdan aşağı denenir. */
 const CONTEXT_LADDER = [32768, 16384, 8192, 4096, 2048];
 
@@ -24,6 +26,12 @@ export interface MemoryBudget {
   usedMb: number;
   freeMb: number;
   unifiedMemory: boolean;
+  /**
+   * Ayrık kartta hızlandırıcıya gerçekten sığacak olan. Birleşik bellekte
+   * (Apple Silicon) 0'dır: orada ayrı bir VRAM havuzu yoktur. VRAM'i
+   * ölçemediğimiz kartlarda da 0 -- katman bölmek kumar olurdu.
+   */
+  vramFreeMb: number;
 }
 
 export interface LoadPlan {
@@ -66,11 +74,19 @@ export function getBudget(): MemoryBudget {
 
   const used = reservedMb();
   const budgetMb = Math.max(0, ceiling - SYSTEM_RESERVE_MB);
+  // VRAM'de kendi ayırmalarımızı düşmüyoruz: sürücü zaten yüklü modelleri
+  // ölçüyor, iki kez saymak bütçeyi olduğundan dar gösterirdi.
+  const vramFreeMb =
+    !unifiedMemory && gpu.vramTotalMb > 0
+      ? Math.max(0, gpu.vramTotalMb - getVramUsedMb() - VRAM_RESERVE_MB)
+      : 0;
+
   return {
     budgetMb,
     usedMb: used,
     freeMb: Math.max(0, budgetMb - used),
     unifiedMemory,
+    vramFreeMb,
   };
 }
 
@@ -81,9 +97,9 @@ export function getBudget(): MemoryBudget {
  * Amaç OOM'a girmeden ÖNCE ne olacağını bilmek -- referans proje OOM'u
  * aldıktan sonra daha küçük bağlamla yeniden deniyordu.
  *
- * Katman bölme yalnızca ayrık GPU'da anlamlıdır. Apple Silicon'da bellek
- * birleşiktir: "katmanı CPU'ya taşımak" aynı havuzdan okumaktır, tek bayt
- * kazandırmaz. Bu yüzden birleşik bellekte sığmayan model sığmıyordur.
+ * Sistem belleği her platformda tavandır: ayrık kartta bile hızlandırıcıya
+ * sığmayan katmanlar RAM'de durur. Tavanın altında kalındığında ikinci soru
+ * "kaç katman hızlandırıcıya sığar" olur ve bu VRAM'e bakar.
  */
 export function planLoad(
   info: GgufInfo,
@@ -95,60 +111,88 @@ export function planLoad(
 
   for (const contextSize of ladder) {
     const estimate = estimateMemoryMb(info, contextSize);
-    if (estimate.totalMb <= budget.freeMb) {
-      const shrunk = contextSize < (ladder[0] ?? contextSize);
-      return {
-        contextSize,
-        gpuLayers: -1,
-        estimatedMb: estimate.totalMb,
-        fits: true,
-        reason: shrunk
-          ? `Bağlam ${contextSize} belirteçe düşürüldü: bellek bütçesi ${formatMb(budget.freeMb)}.`
-          : `Tüm katmanlar hızlandırıcıda, bağlam ${contextSize} belirteç.`,
-      };
-    }
+    if (estimate.totalMb > budget.freeMb) continue;
+
+    const offload = planOffload(info, estimate, budget);
+    const shrunk = contextSize < (ladder[0] ?? contextSize);
+    const prefix = shrunk
+      ? `Bağlam ${contextSize} belirteçe düşürüldü: bellek bütçesi ${formatMb(budget.freeMb)}.`
+      : `Bağlam ${contextSize} belirteç.`;
+
+    return {
+      contextSize,
+      gpuLayers: offload.gpuLayers,
+      estimatedMb: estimate.totalMb,
+      fits: true,
+      reason: `${prefix} ${offload.reason}`,
+    };
   }
 
   const smallest = ladder[ladder.length - 1] ?? 2048;
   const estimate = estimateMemoryMb(info, smallest);
+  return {
+    contextSize: smallest,
+    gpuLayers: 0,
+    estimatedMb: estimate.totalMb,
+    fits: false,
+    reason:
+      `Model bu makinede çalıştırılamayacak kadar büyük: en küçük bağlamda bile ` +
+      `~${formatMb(estimate.totalMb)} gerekiyor, ${formatMb(budget.freeMb)} boş. ` +
+      `Daha küçük nicemlenmiş bir sürüm deneyin.`,
+  };
+}
 
+/**
+ * Kaç katman hızlandırıcıda kalsın?
+ *
+ * Üç dünya var ve üçü farklı cevap ister:
+ *  - Birleşik bellek (Apple Silicon): GPU ile CPU aynı havuzu kullanır,
+ *    katman taşımak tek bayt kazandırmaz. Sığıyorsa hepsi GPU'da.
+ *  - Ayrık kart, VRAM ölçülebiliyor: ağırlıklar VRAM'e sığdığı kadar taşınır,
+ *    kalanı RAM'de kalır ve işlemcide çalışır.
+ *  - Hızlandırıcı yok ya da VRAM ölçülemiyor: 0 katman. Tahmine dayanıp
+ *    modeli GPU'ya itmek, ölçemediğimiz bir sınırda sessiz OOM demektir.
+ */
+function planOffload(
+  info: GgufInfo,
+  estimate: { modelMb: number; kvCacheMb: number; totalMb: number },
+  budget: MemoryBudget,
+): { gpuLayers: number; reason: string } {
   if (budget.unifiedMemory) {
-    // Birleşik bellek: bölmenin faydası yok, dürüst cevap "sığmıyor".
+    return { gpuLayers: -1, reason: "Tüm katmanlar hızlandırıcıda." };
+  }
+  if (budget.vramFreeMb <= 0) {
     return {
-      contextSize: smallest,
-      gpuLayers: -1,
-      estimatedMb: estimate.totalMb,
-      fits: false,
-      reason:
-        `Model bu makinede çalıştırılamayacak kadar büyük: en küçük bağlamda bile ` +
-        `~${formatMb(estimate.totalMb)} gerekiyor, ${formatMb(budget.freeMb)} boş. ` +
-        `Daha küçük nicemlenmiş bir sürüm deneyin.`,
+      gpuLayers: 0,
+      reason: "Hızlandırıcı bulunamadı; model işlemcide çalışacak (yavaş).",
     };
   }
 
-  // Ayrık GPU: ağırlıkların bir kısmı VRAM'de, kalanı sistem belleğinde
-  // durabilir. Faz 6'da gerçek VRAM/RAM ayrımı geldiğinde bu dal gerçek
-  // iki ayrı bütçeyle çalışacak.
+  if (estimate.totalMb <= budget.vramFreeMb) {
+    return {
+      gpuLayers: -1,
+      reason: `Tüm katmanlar hızlandırıcıda (${formatMb(budget.vramFreeMb)} VRAM boş).`,
+    };
+  }
+
+  // Katman başına maliyet: ağırlık payı + o katmanın KV önbelleği. KV yalnızca
+  // hızlandırıcıdaki katmanlar için VRAM'de durur, o yüzden katmana bölünür.
   const layers = info.blockCount > 0 ? info.blockCount : 32;
-  const perLayerMb = estimate.modelMb / layers;
+  const perLayerMb = Math.max(1, (estimate.modelMb + estimate.kvCacheMb) / layers);
   const affordable = Math.max(
     0,
-    Math.floor((budget.freeMb - estimate.kvCacheMb - 256) / Math.max(1, perLayerMb)),
+    Math.min(layers, Math.floor(budget.vramFreeMb / perLayerMb)),
   );
-  // Katmanların yarısından azı hızlandırıcıya sığıyorsa kazanç gürültüde
-  // kalır; kullanıcıya "çalışır" demek yanıltıcı olur.
-  const worthwhile = affordable >= Math.ceil(layers / 4);
 
+  if (affordable === 0) {
+    return {
+      gpuLayers: 0,
+      reason: `VRAM (${formatMb(budget.vramFreeMb)} boş) tek katmana yetmiyor; model işlemcide çalışacak (yavaş).`,
+    };
+  }
   return {
-    contextSize: smallest,
-    gpuLayers: Math.min(layers, affordable),
-    estimatedMb: estimate.totalMb,
-    fits: worthwhile,
-    reason: worthwhile
-      ? `Model bütçeye sığmıyor: ${affordable}/${layers} katman hızlandırıcıda, kalanı işlemcide (yavaş).`
-      : `Model bu makine için fazla büyük: ~${formatMb(estimate.totalMb)} gerekiyor, ` +
-        `${formatMb(budget.freeMb)} boş. Yalnızca ${affordable}/${layers} katman ` +
-        `hızlandırıcıya sığıyor; kullanılabilir hız vermez.`,
+    gpuLayers: affordable,
+    reason: `${affordable}/${layers} katman hızlandırıcıda, kalanı işlemcide (${formatMb(budget.vramFreeMb)} VRAM boş).`,
   };
 }
 

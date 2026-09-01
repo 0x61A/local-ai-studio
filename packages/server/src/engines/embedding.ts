@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { MODELS_DIR } from "../config.js";
+import { MODELS_DIR, setupCommand } from "../config.js";
 import { planLoad, release, reserve } from "../hardware/budget.js";
 import { readGgufInfo } from "../models/gguf.js";
 import { buildArgs, llamaBinary } from "./llama.js";
@@ -42,7 +42,7 @@ export async function startEmbedding(filename: string): Promise<EngineStatus> {
   const binary = llamaBinary();
   if (!binary) {
     throw new Error(
-      "llama.cpp motoru kurulu değil. `bash scripts/setup/fetch-llama.sh` çalıştırın.",
+      `llama.cpp motoru kurulu değil. \`${setupCommand("llama")}\` çalıştırın.`,
     );
   }
   const modelPath = path.join(MODELS_DIR, path.basename(filename));

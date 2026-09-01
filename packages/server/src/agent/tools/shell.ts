@@ -1,5 +1,6 @@
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { z } from "zod";
+import { IS_WINDOWS } from "../../config.js";
 import { defineTool, type Tool, type ToolContext, type ToolResult } from "../types.js";
 
 /**
@@ -57,7 +58,8 @@ function execute(
       shell: true,
       cwd: context.workspaceRoot,
       // Kendi süreç grubunda: zaman aşımında alt süreçler de gider.
-      detached: true,
+      // Windows'ta grup diye bir şey yok; orada ağacı taskkill topluyor.
+      detached: !IS_WINDOWS,
       stdio: ["ignore", "pipe", "pipe"],
     });
 
@@ -109,9 +111,20 @@ function execute(
   });
 }
 
-/** Süreç grubunun tamamını öldürür; yalnızca kendi başlattığımız grubu. */
+/**
+ * Süreç ağacının tamamını öldürür; yalnızca kendi başlattığımız süreci
+ * kökten. Unix'te negatif kimlik süreç grubunu hedefler. Windows'ta grup
+ * sinyali yok: `process.kill` yalnızca `cmd.exe`'yi öldürür ve asıl komut
+ * arkada kalırdı, o yüzden `taskkill /T` ile ağaç kapatılır.
+ */
 function killGroup(pid: number | undefined): void {
   if (!pid) return;
+  if (IS_WINDOWS) {
+    execFile("taskkill", ["/PID", String(pid), "/T", "/F"], () => {
+      // Süreç zaten bitmişse taskkill hata döner; yapacak bir şey yok.
+    });
+    return;
+  }
   try {
     process.kill(-pid, "SIGKILL");
   } catch {

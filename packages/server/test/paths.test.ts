@@ -54,7 +54,8 @@ describe("resolveInside", () => {
   });
 
   it("kok disina isaret eden sembolik bagi reddeder", () => {
-    fs.symlinkSync(outside, path.join(root, "escape-link"));
+    // "junction": Windows'ta yonetici yetkisi gerektirmeyen dizin bagi.
+    fs.symlinkSync(outside, path.join(root, "escape-link"), "junction");
     expect(() => resolveInside(root, "escape-link/secret.txt")).toThrow(
       PathEscapeError,
     );
