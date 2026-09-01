@@ -162,7 +162,7 @@ export interface HfFile {
   downloadUrl: string;
 }
 
-export type ToolRisk = "read" | "write" | "exec";
+export type ToolRisk = "read" | "write" | "exec" | "computer";
 
 export interface ToolInfo {
   name: string;
@@ -206,6 +206,13 @@ export interface SearchProviderInfo {
   available: boolean;
 }
 
+export interface TaskProgress {
+  id: string;
+  title: string;
+  state: "pending" | "running" | "done" | "failed";
+  ms?: number;
+}
+
 export interface AgentStatus {
   workspace: string | null;
   running: boolean;
@@ -213,6 +220,9 @@ export interface AgentStatus {
   alwaysAllowed: string[];
   mcpServers: McpStatus[];
   searchProviders: SearchProviderInfo[];
+  /** Plan kipinde alt görevler; akış kopsa da sunucuda durur. */
+  tasks: TaskProgress[];
+  browser: { installed: boolean; open: boolean };
 }
 
 export interface Preferences {
@@ -479,6 +489,9 @@ export const api = {
       body: JSON.stringify({ id, approved, always }),
     }),
   stopAgent: () => request<{ ok: boolean }>("/api/agent/stop", { method: "POST" }),
+
+  closeBrowser: () =>
+    request<{ open: boolean }>("/api/agent/browser/close", { method: "POST" }),
   mcpServers: () =>
     request<{ servers: McpServer[]; statuses: McpStatus[] }>("/api/agent/mcp"),
   saveMcpServer: (config: McpServer) =>
@@ -630,5 +643,14 @@ export async function fetchAudioObjectUrl(filename: string): Promise<string> {
     headers: authHeaders(),
   });
   if (!response.ok) throw new Error(`Ses yüklenemedi: HTTP ${response.status}`);
+  return URL.createObjectURL(await response.blob());
+}
+
+/** Ajanın aldığı ekran görüntüsü; bkz. fetchImageObjectUrl. */
+export async function fetchScreenshotObjectUrl(filename: string): Promise<string> {
+  const response = await fetch(`/api/agent/screenshot/${encodeURIComponent(filename)}`, {
+    headers: authHeaders(),
+  });
+  if (!response.ok) throw new Error(`Ekran görüntüsü yüklenemedi: HTTP ${response.status}`);
   return URL.createObjectURL(await response.blob());
 }

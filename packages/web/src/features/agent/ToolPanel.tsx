@@ -3,7 +3,7 @@ import { useUi } from "../../stores/ui";
 
 export function ToolPanel() {
   const t = useUi((s) => s.t);
-  const { tools, status } = useAgent();
+  const { tools, status, closeBrowser } = useAgent();
 
   return (
     <div className="tool-panel">
@@ -16,6 +16,21 @@ export function ToolPanel() {
           </li>
         ))}
       </ul>
+      {status && !status.browser.installed && (
+        <p className="facts__note">{t("agent.browserMissing")}</p>
+      )}
+      {status?.browser.open && (
+        <p className="facts__note">
+          {t("agent.browserOpen")}{" "}
+          <button
+            type="button"
+            className="button button--ghost button--small"
+            onClick={() => void closeBrowser()}
+          >
+            {t("agent.browserClose")}
+          </button>
+        </p>
+      )}
       {status && status.alwaysAllowed.length > 0 && (
         <p className="facts__note">
           {t("agent.alwaysAllowed")}: {status.alwaysAllowed.join(", ")}

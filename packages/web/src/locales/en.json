@@ -266,8 +266,25 @@
     "risk": {
       "read": "read",
       "write": "write",
-      "exec": "command"
-    }
+      "exec": "command",
+      "computer": "browser"
+    },
+    "browserMissing": "Browser tools are not installed. To install: bash scripts/setup/fetch-playwright.sh",
+    "plan": {
+      "toggle": "Plan",
+      "hint": "Splits the task into steps and runs each one as a separate sub-agent. For long jobs.",
+      "title": "Plan",
+      "progress": "{{done}} / {{total}} steps",
+      "step": "Step {{n}}",
+      "state": {
+        "pending": "pending",
+        "running": "running",
+        "done": "done",
+        "failed": "failed"
+      }
+    },
+    "browserOpen": "A browser page is open.",
+    "browserClose": "Close browser"
   },
   "mcp": {
     "title": "MCP servers",

@@ -13,8 +13,8 @@ Node.js + TypeScript tek calisma zamani; agir hesap native motorlarda
 | 2 | Tool-calling ajan, onay kapisi, MCP istemcisi | tamamlandi |
 | 3 | RAG / bilgi tabani (PDF, DOCX, Markdown, kod) | tamamlandi |
 | 4 | Gorsel uretimi + ses (STT/TTS) | tamamlandi |
-| 5 | Cok-ajanli planlayici, bilgisayar kullanimi | siradaki |
-| 6 | Windows + Linux | planlandi |
+| 5 | Cok-ajanli planlayici, bilgisayar kullanimi | tamamlandi |
+| 6 | Windows + Linux | siradaki |
 
 ## Calistirma
 
@@ -37,6 +37,12 @@ bash scripts/setup/fetch-sd.sh
 
 ```bash
 bash scripts/setup/fetch-whisper.sh
+```
+
+Tarayici otomasyonu (ajanin gercek bir sayfada gezinmesi) istege bagli:
+
+```bash
+bash scripts/setup/fetch-playwright.sh
 ```
 
 Sonra arayuzdeki **Modeller** sekmesinden Hugging Face'te arama yapip tek
@@ -72,6 +78,17 @@ Gemini, OpenRouter) icin **Ayarlar** sekmesinden API anahtari ekleyin.
 - **Ses**: konusma tanima (whisper.cpp ya da OpenAI) ve metinden sese.
   Ses donusturme tarayicida yapilir (`decodeAudioData`), sunucuda ffmpeg
   yok: tarayici zaten mp3, m4a, ogg, webm hepsini cozebiliyor.
+- **Plan kipi**: uzun bir gorevi model kendisi alt adimlara boler, her adim
+  ayri bir alt ajan olarak kendi baglami ile calisir, sonuclar tek cevapta
+  birlestirilir. Kazanc baglam hijyeni: otuz arac cagrisi tek pencereye
+  yigilmaz, her adim yalnizca kendi isini ve onceki adimlarin ozetini
+  gorur. Adimlar panelde sirayla durum ve sure ile izlenir; is bitince
+  panel silinmez.
+- **Bilgisayar kullanimi**: gercek Chromium'da gezinme -- sayfa acma,
+  numarali ogeye tiklama, forma yazma, ekran goruntusu. `fetch_url` statik
+  metin icin; JavaScript ile uretilen sayfalar ve oturum gerektiren akislar
+  icin bu. Her eylem onay kapisindan gecer, okuma dahil. Playwright pakete
+  gomulmez, `scripts/setup/fetch-playwright.sh` isteyene kurar.
 - **Ayarlar**: API anahtarlari (sifreli saklanir), web arama saglayicilari,
   MCP sunuculari, sistem istemi, sicaklik, belirtec siniri
 - **Sistem**: donanim bilgisi ve canli kullanim
@@ -128,9 +145,28 @@ npm run dev:web     # vite dev sunucusu, /api isteklerini sunucuya proxy'ler
 - **Seslendirme metni** komut satiri argumani olmaz, gecici dosyadan
   okunur; ses adi gercek ses listesiyle dogrulanir (aksi hâlde `-o` gibi
   bir ad bayrak sanilabilirdi).
+- **Tarayici otomasyonunda SSRF korumasi tek adrese degil, sayfanin
+  cikardigi HER istege uygulanir.** Adresi kontrol edip gerisini serbest
+  birakmak yetmez: sayfa kendi icinden yuzlerce istek yapar ve iclerinden
+  biri bulut metadata ucu olabilir. Konak basina bir kez cozumlenir, yoksa
+  sayfa kullanilamaz hale gelirdi.
+- **Parola alanina yazilmaz.** Onay verilse bile reddedilir: onay kartinda
+  gorunecek sey kullanicinin kendi parolasi olurdu ve ajanin elinde dogru
+  parola zaten yok.
+- **Arac semalarindan dizge uzunluk sinirlari cikarilir.** llama.cpp semayi
+  bir GBNF dilbilgisine ceviriyor ve belirli degerler bozuk dilbilgisi
+  uretiyor; uzunluk zaten sunucuda zod ile dogrulaniyor.
 
 Bu maddelerin cogu `packages/server/test/server.test.ts` ve
 `router.test.ts` icinde test edilir.
+
+### Bilinen bosluk: tarayici otomasyonu isteğe bagli
+
+Playwright + Chromium ~150 MB ve kullanicilarin cogu tarayici otomasyonu
+istemiyor; pakete gomulmez. `bash scripts/setup/fetch-playwright.sh`
+`runtime/engines/playwright/` altina kurar -- sisteme degil, silmek klasoru
+silmek demek. Kurulu degilken tarayici araclari listede gorunur ama
+cagrildiklarinda nasil kurulacagini soyler, onay bile istemez.
 
 ### Bilinen bosluk: macOS'ta whisper.cpp
 

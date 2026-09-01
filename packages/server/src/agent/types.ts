@@ -8,7 +8,12 @@ import { z } from "zod";
  * doğrulama ile modele anlatılan biçim birbirinden ayrılamaz.
  */
 
-export type ToolRisk = "read" | "write" | "exec";
+/**
+ * Araç risk seviyesi. `read` serbest çalışır; kalan üçü onay kapısından geçer.
+ * `computer` ayrı durur çünkü onay kartında gösterilecek şey farklı: dosya
+ * farkı ya da komut satırı değil, tarayıcıda yapılacak eylem.
+ */
+export type ToolRisk = "read" | "write" | "exec" | "computer";
 
 export interface ToolResult {
   /** Modele geri verilecek metin. */
@@ -56,19 +61,48 @@ export interface Tool<Input = unknown> {
 
 /** Sağlayıcıya gönderilecek biçim. `$schema` anahtarı bazı sağlayıcıları rahatsız eder. */
 export function toolParameters(tool: Tool<never>): Record<string, unknown> {
-  if (tool.parametersOverride) {
-    const { $schema: _ignored, ...rest } = tool.parametersOverride;
-    return rest;
+  const source =
+    tool.parametersOverride ??
+    (z.toJSONSchema(tool.schema as z.ZodType, { io: "input" }) as Record<string, unknown>);
+  const { $schema: _dropped, ...rest } = source;
+  return stripLengthBounds(rest) as Record<string, unknown>;
+}
+
+/**
+ * `minLength`/`maxLength` şemadan çıkarılır.
+ *
+ * llama.cpp araç şemasını bir GBNF dilbilgisine çevirir ve dizge uzunluk
+ * sınırı orada bir yineleme kuralına dönüşür. Belirli değerlerde üretilen
+ * dilbilgisi bozuk çıkıyor: `maxLength: 2000` istekin tamamını
+ * "failed to parse grammar" ile 400'e düşürüyor (1999 ve 2001 sorunsuz).
+ * Tek bir şanssız sayı bütün araç çağırmayı öldürüyordu.
+ *
+ * Kayıp yok: uzunluk bir doğrulama kuralıdır ve model cevap verdikten sonra
+ * zod tarafından zaten uygulanıyor. Modele anlatılması gereken şey
+ * açıklamada duruyor. Sayı aralıkları (`minimum`/`maximum`) sorun çıkarmıyor
+ * ve modele gerçekten yol gösteriyor; onlar kalıyor.
+ */
+export function stripLengthBounds(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stripLengthBounds);
+  if (typeof value !== "object" || value === null) return value;
+  const out: Record<string, unknown> = {};
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    if (key === "minLength" || key === "maxLength") continue;
+    out[key] = stripLengthBounds(entry);
   }
-  const schema = z.toJSONSchema(tool.schema as z.ZodType, {
-    io: "input",
-  }) as Record<string, unknown>;
-  const { $schema: _dropped, ...rest } = schema;
-  return rest;
+  return out;
 }
 
 export function defineTool<Input>(tool: Tool<Input>): Tool<Input> {
   return tool;
+}
+
+/** Planlayıcının ürettiği alt görev. */
+export interface PlanTask {
+  id: string;
+  title: string;
+  /** Alt ajana verilecek istem. */
+  prompt: string;
 }
 
 /** Ajan döngüsünün dışarıya yaydığı olaylar. */
@@ -81,5 +115,8 @@ export type AgentEvent =
   | { type: "approval_resolved"; id: string; approved: boolean }
   | { type: "tool_end"; id: string; name: string; result: ToolResult; ms: number }
   | { type: "usage"; promptTokens: number; completionTokens: number }
+  | { type: "plan"; tasks: PlanTask[] }
+  | { type: "task_start"; id: string; index: number; title: string }
+  | { type: "task_end"; id: string; failed: boolean; summary: string; ms: number }
   | { type: "error"; message: string }
   | { type: "done"; reason: "stop" | "max_steps" | "aborted" | "error" };

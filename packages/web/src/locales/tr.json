@@ -266,8 +266,25 @@
     "risk": {
       "read": "okuma",
       "write": "yazma",
-      "exec": "komut"
-    }
+      "exec": "komut",
+      "computer": "tarayıcı"
+    },
+    "browserMissing": "Tarayıcı araçları kurulu değil. Kurmak için: bash scripts/setup/fetch-playwright.sh",
+    "plan": {
+      "toggle": "Planla",
+      "hint": "Görevi adımlara böler ve her adımı ayrı bir alt ajanla çalıştırır. Uzun işler için.",
+      "title": "Plan",
+      "progress": "{{done}} / {{total}} adım",
+      "step": "Adım {{n}}",
+      "state": {
+        "pending": "bekliyor",
+        "running": "çalışıyor",
+        "done": "bitti",
+        "failed": "başarısız"
+      }
+    },
+    "browserOpen": "Bir tarayıcı sayfası açık.",
+    "browserClose": "Tarayıcıyı kapat"
   },
   "mcp": {
     "title": "MCP sunucuları",

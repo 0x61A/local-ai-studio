@@ -2,13 +2,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAgent } from "../../stores/agent";
 import { useModels } from "../../stores/models";
 import { useUi } from "../../stores/ui";
+import { PlanPanel } from "./PlanPanel";
 import { Transcript } from "./Transcript";
 import { WorkspaceBar } from "./WorkspaceBar";
 import { ToolPanel } from "./ToolPanel";
 
 export function AgentView() {
   const t = useUi((s) => s.t);
-  const { status, entries, running, step, error, refresh, run, stop, reset } = useAgent();
+  const { status, entries, tasks, running, step, error, refresh, run, stop, reset } =
+    useAgent();
   const { engine, providers, providerModels, refresh: refreshModels, loadProviderModels } =
     useModels();
 
@@ -16,6 +18,7 @@ export function AgentView() {
   const [model, setModel] = useState("");
   const [task, setTask] = useState("");
   const [showTools, setShowTools] = useState(false);
+  const [plan, setPlan] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -81,6 +84,16 @@ export function AgentView() {
           </select>
         </label>
 
+        <label className="field field--check" title={t("agent.plan.hint")}>
+          <input
+            type="checkbox"
+            checked={plan}
+            disabled={running}
+            onChange={(event) => setPlan(event.target.checked)}
+          />
+          <span>{t("agent.plan.toggle")}</span>
+        </label>
+
         {running && <span className="agent__step">{t("agent.step", { n: step })}</span>}
 
         <button
@@ -99,6 +112,7 @@ export function AgentView() {
       </div>
 
       {showTools && <ToolPanel />}
+      <PlanPanel tasks={tasks} />
 
       <div className="chat__scroll">
         {noWorkspace && <p className="chat__empty">{t("agent.pickWorkspaceFirst")}</p>}
@@ -117,7 +131,7 @@ export function AgentView() {
           const trimmed = task.trim();
           if (!trimmed || !canRun) return;
           setTask("");
-          void run(trimmed, { provider, model });
+          void run(trimmed, { provider, model, plan });
         }}
       >
         <textarea

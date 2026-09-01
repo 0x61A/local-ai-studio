@@ -5,6 +5,7 @@ import { stopEmbedding } from "./engines/embedding.js";
 import { stopLlama } from "./engines/llama.js";
 import { stopSd } from "./engines/sd.js";
 import { disconnectAll } from "./agent/mcp.js";
+import { closeBrowser } from "./browser/session.js";
 
 async function start(): Promise<void> {
   ensureDataDirs();
@@ -34,6 +35,7 @@ async function start(): Promise<void> {
       stopEmbedding(),
       stopSd(),
       disconnectAll(),
+      closeBrowser(),
       studio.close(),
     ]);
     process.exit(0);

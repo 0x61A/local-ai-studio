@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { fetchScreenshotObjectUrl } from "../../lib/api";
 import type { TranscriptEntry } from "../../stores/agent";
 import { useAgent } from "../../stores/agent";
 import { useUi } from "../../stores/ui";
@@ -8,6 +9,7 @@ export function Transcript({ entries }: { entries: TranscriptEntry[] }) {
     <ol className="transcript">
       {entries.map((entry) => (
         <li key={entry.id} className="transcript__item">
+          {entry.kind === "task" && <TaskEntry entry={entry} />}
           {entry.kind === "text" && <TextEntry entry={entry} />}
           {entry.kind === "tool" && <ToolEntry entry={entry} />}
           {entry.kind === "approval" && <ApprovalCard entry={entry} />}
@@ -17,6 +19,20 @@ export function Transcript({ entries }: { entries: TranscriptEntry[] }) {
         </li>
       ))}
     </ol>
+  );
+}
+
+/** Plan kipinde adım sınırı. Transkript tek uzun akış olmaktan çıkar. */
+function TaskEntry({ entry }: { entry: TranscriptEntry }) {
+  const t = useUi((s) => s.t);
+  return (
+    <div className={`task-mark task-mark--${entry.taskState ?? "running"}`}>
+      <span className="task-mark__index">{t("agent.plan.step", { n: entry.index ?? 0 })}</span>
+      <span className="task-mark__title">{entry.content}</span>
+      {entry.ms !== undefined && (
+        <span className="task-mark__ms">{(entry.ms / 1000).toFixed(1)} s</span>
+      )}
+    </div>
   );
 }
 
@@ -50,6 +66,8 @@ function ToolEntry({ entry }: { entry: TranscriptEntry }) {
         {entry.ms !== undefined && <span className="tool__ms">{entry.ms} ms</span>}
       </button>
 
+      {entry.toolName === "browser_screenshot" && <Screenshot detail={entry.toolResult?.detail} />}
+
       {open && (
         <div className="tool__detail">
           <p className="tool__label">{t("agent.arguments")}</p>
@@ -66,10 +84,40 @@ function ToolEntry({ entry }: { entry: TranscriptEntry }) {
   );
 }
 
+/**
+ * Ekran görüntüsü. `<img src>` oturum token'ını gönderemez; dosya fetch ile
+ * çekilip nesne URL'i üretilir ve bileşen kalkarken serbest bırakılır.
+ */
+function Screenshot({ detail }: { detail: unknown }) {
+  const filename = (detail as { filename?: string } | undefined)?.filename;
+  const [url, setUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!filename) return undefined;
+    let objectUrl: string | null = null;
+    let cancelled = false;
+    void fetchScreenshotObjectUrl(filename)
+      .then((value) => {
+        objectUrl = value;
+        if (cancelled) URL.revokeObjectURL(value);
+        else setUrl(value);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [filename]);
+
+  if (!url) return null;
+  return <img className="tool__shot" src={url} alt={filename ?? ""} />;
+}
+
 function summarize(entry: TranscriptEntry): string {
   const args = entry.toolArgs as Record<string, unknown> | undefined;
   if (!args) return "";
-  const first = args["path"] ?? args["query"] ?? args["url"] ?? args["command"];
+  const first =
+    args["path"] ?? args["query"] ?? args["url"] ?? args["command"] ?? args["text"];
   return first === undefined ? "" : String(first).slice(0, 80);
 }
 

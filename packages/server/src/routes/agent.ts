@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import fs from "node:fs";
 import { z } from "zod";
 import { ApprovalGate } from "../agent/approval.js";
 import { runAgent } from "../agent/loop.js";
@@ -11,8 +12,13 @@ import {
   saveServer,
   serverStatuses,
 } from "../agent/mcp.js";
+import { runPlannedAgent } from "../agent/planner.js";
 import { builtinTools, describeTools } from "../agent/registry.js";
-import type { Tool } from "../agent/types.js";
+import type { PlanTask, Tool } from "../agent/types.js";
+import { playwrightInstalled } from "../browser/playwright.js";
+import { browserOpen, closeBrowser } from "../browser/session.js";
+import { BROWSER_OUTPUTS_DIR } from "../config.js";
+import { resolveInside } from "../security/paths.js";
 import {
   WorkspaceError,
   clearWorkspace,
@@ -40,14 +46,27 @@ import { getPreferences } from "./settings.js";
  * isteğiyle geldiği için döngüye ulaşacak bir kayıt gerekiyor; tek oturum
  * yerel tek kullanıcılı uygulamada yeterli ve durumu izlemesi kolay.
  */
+export interface TaskProgress {
+  id: string;
+  title: string;
+  state: "pending" | "running" | "done" | "failed";
+  ms?: number;
+}
+
 interface Session {
   id: string;
   gate: ApprovalGate;
   abort: AbortController;
   startedAt: number;
+  /** Plan kipinde alt görevlerin durumu. Uzun görev panelini besler ve
+   *  akış kopsa bile durum burada durur. */
+  tasks: TaskProgress[];
 }
 
 let session: Session | null = null;
+/** Biten çalıştırmanın adımları. Panel iş bitince boşalmamalı: kullanıcı
+ *  neyin ne kadar sürdüğüne tam o an bakıyor. Sayfa yenilense de durur. */
+let lastTasks: TaskProgress[] = [];
 
 const SYSTEM_PROMPT = [
   "Sen kullanıcının bilgisayarında çalışan bir yardımcı ajansın.",
@@ -64,6 +83,8 @@ const RunBody = z.object({
   provider: z.enum(PROVIDER_IDS).optional(),
   model: z.string().max(200).optional(),
   maxSteps: z.number().int().min(1).max(50).optional(),
+  /** Görevi alt adımlara böl ve her adımı ayrı alt ajanla çalıştır. */
+  plan: z.boolean().optional(),
 });
 
 const ApproveBody = z.object({
@@ -81,7 +102,25 @@ export function registerAgentRoutes(router: Router): void {
     alwaysAllowed: session?.gate.allowedAlways() ?? [],
     mcpServers: serverStatuses(),
     searchProviders: listSearchProviders(),
+    tasks: session?.tasks ?? lastTasks,
+    browser: { installed: playwrightInstalled(), open: browserOpen() },
   }));
+
+  /** Ajanın aldığı ekran görüntüsü. Görsellerdeki gibi token başlık ile
+   *  geldiği için `<img src>` değil `fetch` + blob URL kullanılır. */
+  router.get("/api/agent/screenshot/:filename", {}, ({ params, res }) => {
+    const file = resolveInside(BROWSER_OUTPUTS_DIR, params["filename"] as string);
+    if (!fs.existsSync(file)) throw HttpError.notFound("Ekran görüntüsü bulunamadı.");
+    const bytes = fs.readFileSync(file);
+    res.writeHead(200, {
+      "content-type": "image/png",
+      "content-length": bytes.length,
+      "x-content-type-options": "nosniff",
+      "cache-control": "no-store",
+    });
+    res.end(bytes);
+    return undefined;
+  });
 
   router.get("/api/agent/tools", {}, async () => {
     const mcp = await collectTools().catch(() => [] as Tool<never>[]);
@@ -136,6 +175,13 @@ export function registerAgentRoutes(router: Router): void {
       throw HttpError.notFound("Bu onay isteği artık geçerli değil (zaman aşımı olabilir).");
     }
     return { ok: true };
+  });
+
+  /** Açık tarayıcıyı kapatır. Ajanın `browser_close` aracı da var ama
+   *  kullanıcı belleği boşaltmak için ajandan rica etmek zorunda kalmamalı. */
+  router.post("/api/agent/browser/close", {}, async () => {
+    await closeBrowser();
+    return { open: browserOpen() };
   });
 
   router.post("/api/agent/stop", {}, () => {
@@ -215,6 +261,7 @@ export function registerAgentRoutes(router: Router): void {
       gate: new ApprovalGate(),
       abort: new AbortController(),
       startedAt: Date.now(),
+      tasks: [],
     };
     session = current;
     // Sekme kapanırsa çalıştırmayı bırak; bekleyen onaylar reddedilir.
@@ -224,7 +271,8 @@ export function registerAgentRoutes(router: Router): void {
     });
 
     try {
-      const { events, result } = runAgent({
+      const start = body.plan ? runPlannedAgent : runAgent;
+      const { events, result } = start({
         provider,
         model,
         tools,
@@ -242,6 +290,7 @@ export function registerAgentRoutes(router: Router): void {
       });
 
       for await (const event of events) {
+        trackTask(current, event);
         if (stream.isClosed) break;
         const { type, ...payload } = event;
         stream.send(type, payload);
@@ -259,11 +308,34 @@ export function registerAgentRoutes(router: Router): void {
       stream.send("done", { reason: "error" });
     } finally {
       current.gate.rejectAll();
+      lastTasks = current.tasks;
       if (session === current) session = null;
       stream.close();
     }
     return undefined;
   });
+}
+
+/** Plan olaylarını oturuma yansıtır: panel ve /status buradan okur. */
+function trackTask(current: Session, event: { type: string } & Record<string, unknown>): void {
+  if (event.type === "plan") {
+    current.tasks = (event["tasks"] as PlanTask[]).map((task) => ({
+      id: task.id,
+      title: task.title,
+      state: "pending",
+    }));
+    return;
+  }
+  if (event.type === "task_start" || event.type === "task_end") {
+    const task = current.tasks.find((entry) => entry.id === event["id"]);
+    if (!task) return;
+    if (event.type === "task_start") {
+      task.state = "running";
+      return;
+    }
+    task.state = event["failed"] === true ? "failed" : "done";
+    task.ms = Number(event["ms"] ?? 0);
+  }
 }
 
 function buildSystemPrompt(workspace: string, userPrompt: string): string {

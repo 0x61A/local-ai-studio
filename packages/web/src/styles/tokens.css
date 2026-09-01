@@ -18,6 +18,8 @@
   --accent: #3a5f4b;
   --accent-text: #ffffff;
   --danger: #9a3412;
+  /* `computer` riski: exec kadar yikici degil ama okuma da degil. */
+  --warning: #8a5a12;
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -56,6 +58,7 @@
     --accent: #8fbf9f;
     --accent-text: #12140f;
     --danger: #e08d6a;
+    --warning: #d8b06a;
     --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 2px 8px rgb(0 0 0 / 0.25);
   }
 }
@@ -73,5 +76,6 @@
   --accent: #8fbf9f;
   --accent-text: #12140f;
   --danger: #e08d6a;
+  --warning: #d8b06a;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 2px 8px rgb(0 0 0 / 0.25);
 }

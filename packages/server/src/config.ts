@@ -40,6 +40,8 @@ export const AUDIO_MODELS_DIR = path.join(MODELS_DIR, "audio");
 export const OUTPUTS_DIR = path.join(DATA_DIR, "outputs");
 /** Uretilen ses dosyalari; gorsellerden ayri dursun. */
 export const AUDIO_OUTPUTS_DIR = path.join(OUTPUTS_DIR, "audio");
+/** Ajanin tarayicidan aldigi ekran goruntuleri. */
+export const BROWSER_OUTPUTS_DIR = path.join(OUTPUTS_DIR, "browser");
 /** Motor süreçlerinin kimlikleri; çökme sonrası yetim kalanları toplamak için. */
 export const ENGINE_PID_FILE = path.join(DATA_DIR, "engine-pids.json");
 
@@ -69,7 +71,7 @@ export const SESSION_TOKEN = crypto.randomBytes(32).toString("base64url");
 export function ensureDataDirs(): void {
   for (const dir of [
     DATA_DIR, MODELS_DIR, IMAGE_MODELS_DIR, AUDIO_MODELS_DIR,
-    OUTPUTS_DIR, AUDIO_OUTPUTS_DIR,
+    OUTPUTS_DIR, AUDIO_OUTPUTS_DIR, BROWSER_OUTPUTS_DIR,
   ]) {
     fs.mkdirSync(dir, { recursive: true });
   }

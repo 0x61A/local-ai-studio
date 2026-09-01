@@ -468,6 +468,76 @@ describe("araç şemaları", () => {
     expect(definitions[0]).toMatchObject({ name: "echo", description: expect.any(String) });
     expect(definitions[0]?.parameters["type"]).toBe("object");
   });
+
+  it("dizge uzunluk sınırlarını şemadan çıkarır", () => {
+    // llama.cpp şemayı bir GBNF dilbilgisine çeviriyor ve belirli uzunluk
+    // değerleri bozuk dilbilgisi üretiyor: maxLength 2000 olan tek bir araç
+    // isteğin TAMAMINI "failed to parse grammar" ile 400'e düşürüyordu.
+    // Uzunluk zaten zod tarafında doğrulanıyor, sağlayıcıya gitmesi gereksiz.
+    const bounded: Tool<{ a: string }> = defineTool({
+      name: "bounded",
+      description: "sınırlı",
+      risk: "read",
+      schema: z.object({ a: z.string().min(1).max(2000) }),
+      async run() {
+        return { content: "" };
+      },
+    });
+
+    const parameters = toolParameters(bounded as Tool<never>);
+    const property = (parameters["properties"] as Record<string, Record<string, unknown>>)["a"];
+    expect(property?.["maxLength"]).toBeUndefined();
+    expect(property?.["minLength"]).toBeUndefined();
+    expect(property?.["type"]).toBe("string");
+  });
+
+  it("sayı aralıklarını korur", () => {
+    // Bunlar dilbilgisini bozmuyor ve modele gerçekten yol gösteriyor.
+    const ranged: Tool<{ n: number }> = defineTool({
+      name: "ranged",
+      description: "aralıklı",
+      risk: "read",
+      schema: z.object({ n: z.number().int().min(1).max(80) }),
+      async run() {
+        return { content: "" };
+      },
+    });
+
+    const property = (
+      toolParameters(ranged as Tool<never>)["properties"] as Record<
+        string,
+        Record<string, unknown>
+      >
+    )["n"];
+    expect(property?.["minimum"]).toBe(1);
+    expect(property?.["maximum"]).toBe(80);
+  });
+
+  it("MCP şemalarındaki uzunluk sınırlarını da çıkarır", () => {
+    // Üçüncü taraf bir MCP sunucusu aynı tuzağa düşebilir; şema oradan
+    // olduğu gibi geçiyor ama bu anahtar her yerde tehlikeli.
+    const mcpish: Tool<unknown> = defineTool({
+      name: "mcp__x__y",
+      description: "dış araç",
+      risk: "read",
+      schema: z.object({}),
+      parametersOverride: {
+        type: "object",
+        properties: { q: { type: "string", maxLength: 2000 } },
+      },
+      async run() {
+        return { content: "" };
+      },
+    });
+
+    const property = (
+      toolParameters(mcpish as Tool<never>)["properties"] as Record<
+        string,
+        Record<string, unknown>
+      >
+    )["q"];
+    expect(property?.["maxLength"]).toBeUndefined();
+  });
 });
 
 describe("fark üreteci", () => {
