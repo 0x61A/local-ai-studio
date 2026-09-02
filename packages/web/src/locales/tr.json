@@ -36,7 +36,9 @@
     "usageTitle": "İstem + üretim belirteci",
     "knowledge": "Bilgi tabanı",
     "noKnowledge": "Kullanma",
-    "sourcesUsed": "Kullanılan {{n}} kaynak"
+    "sourcesUsed": "Kullanılan {{n}} kaynak",
+    "attachImage": "Görsel ekle",
+    "removeImage": "Görseli kaldır"
   },
   "models": {
     "engine": "Yerel motor",

@@ -3,7 +3,12 @@ import { llamaEngine } from "../engines/llama.js";
 import { EventStream } from "../http/sse.js";
 import type { Router } from "../http/router.js";
 import { getProvider, setLocalBaseUrlResolver } from "../providers/registry.js";
-import { PROVIDER_IDS, ProviderError, type ChatMessage } from "../providers/types.js";
+import {
+  PROVIDER_IDS,
+  ProviderError,
+  type ChatMessage,
+  type ContentPart,
+} from "../providers/types.js";
 import {
   appendMessage,
   createConversation,
@@ -31,6 +36,16 @@ const ChatBody = z.object({
   systemPrompt: z.string().max(20_000).optional(),
   /** Secilirse cevap bu bilgi tabanindan alinan kaynaklara dayandirilir. */
   collectionId: z.string().uuid().optional(),
+  /** Gorsel anlama: ham base64, veri URL'i degil. */
+  images: z
+    .array(
+      z.object({
+        base64: z.string().min(1).max(12_000_000),
+        mimeType: z.string().max(60).optional(),
+      }),
+    )
+    .max(4)
+    .optional(),
 });
 
 export function registerChatRoutes(router: Router): void {
@@ -94,13 +109,24 @@ export function registerChatRoutes(router: Router): void {
         ? await retrieve(body.collectionId, body.message, stream)
         : null;
 
+      const images = body.images ?? [];
+      if (images.length > 0 && !provider.capabilities.vision) {
+        stream.send("error", {
+          message: `${provider.label} gorsel anlamayi desteklemiyor. Gorsel bir model secin.`,
+        });
+        stream.send("done", { finishReason: "error" });
+        return undefined;
+      }
+
       const messages: ChatMessage[] = [
         ...(systemPrompt ? [{ role: "system" as const, content: systemPrompt }] : []),
         ...(grounding ? [{ role: "system" as const, content: grounding }] : []),
         ...history,
-        { role: "user" as const, content: body.message },
+        { role: "user" as const, content: userContent(body.message, images) },
       ];
 
+      // Gecmise yalnizca metin yazilir: gorseli her turda yeniden gondermek
+      // baglami birkac turda doldurur ve maliyeti katlar.
       appendMessage(conversation.id, { role: "user", content: body.message });
 
       let answer = "";
@@ -174,6 +200,22 @@ const GROUNDING_PROMPT = [
   "Cevabını öncelikle bunlara dayandır ve kullandığın her kaynağa [1], [2] biçiminde atıf yap.",
   "Kaynaklarda olmayan bir şey sorulursa bunu açıkça söyle; kaynaklara dayanıyormuş gibi uydurma.",
 ].join(" ");
+
+/** Gorsel varsa parcali icerik, yoksa duz metin. */
+export function userContent(
+  message: string,
+  images: Array<{ base64: string; mimeType?: string }>,
+): string | ContentPart[] {
+  if (images.length === 0) return message;
+  return [
+    { type: "text", text: message },
+    ...images.map((image): ContentPart => ({
+      type: "image",
+      imageBase64: image.base64,
+      mimeType: image.mimeType ?? "image/png",
+    })),
+  ];
+}
 
 /**
  * Bilgi tabanından bağlam çeker ve kaynakları istemciye de yollar.

@@ -36,7 +36,9 @@
     "usageTitle": "Prompt + completion tokens",
     "knowledge": "Knowledge base",
     "noKnowledge": "Off",
-    "sourcesUsed": "{{n}} sources used"
+    "sourcesUsed": "{{n}} sources used",
+    "attachImage": "Attach image",
+    "removeImage": "Remove image"
   },
   "models": {
     "engine": "Local engine",

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Router } from "../src/http/router.js";
 import { getPreferences, registerSettingsRoutes } from "../src/routes/settings.js";
+import { userContent } from "../src/routes/chat.js";
 import { deleteSetting, setSetting } from "../src/store/settings.js";
 
 describe("Ayarlar Rotası ve Güç Profilleri", () => {
@@ -49,5 +50,26 @@ describe("tercih semasi", () => {
     expect(schema).toBeDefined();
     expect(schema!.safeParse({ temperature: 0.5 }).success).toBe(true);
     expect(schema!.safeParse({ kotuAnahtar: "x" }).success).toBe(false);
+  });
+});
+
+describe("sohbet gorsel icerigi", () => {
+  it("gorsel yoksa duz metin birakir", () => {
+    // Her mesaji parca dizisine cevirmek gereksiz: metin sohbetinde
+    // saglayicilara fazladan sarmalama gonderirdi.
+    expect(userContent("merhaba", [])).toBe("merhaba");
+  });
+
+  it("gorsel varsa metin + gorsel parcalari uretir", () => {
+    const parts = userContent("bu ne?", [{ base64: "AAA", mimeType: "image/jpeg" }]);
+    expect(parts).toEqual([
+      { type: "text", text: "bu ne?" },
+      { type: "image", imageBase64: "AAA", mimeType: "image/jpeg" },
+    ]);
+  });
+
+  it("tur verilmezse PNG varsayar", () => {
+    const parts = userContent("x", [{ base64: "AAA" }]);
+    expect(Array.isArray(parts) ? parts[1]?.mimeType : null).toBe("image/png");
   });
 });

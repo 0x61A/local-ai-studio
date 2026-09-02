@@ -152,7 +152,8 @@ export function ChatView() {
         <Composer
           disabled={!ready}
           sending={sending}
-          onSend={(text) => void send(text, { provider, model })}
+          canSendImages={provider !== "llamacpp" || Boolean(engine?.projector)}
+          onSend={(text, images) => void send(text, { provider, model, images })}
           onStop={stop}
         />
       </div>

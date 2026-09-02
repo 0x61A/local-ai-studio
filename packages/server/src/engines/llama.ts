@@ -21,7 +21,12 @@ const PREFERRED_PORT = 18080;
 export const llamaEngine = new Engine(ENGINE_ID);
 
 /** Son yükleme planı ve model bilgisi -- arayüzde gösterilir. */
-let lastLoad: { plan: LoadPlan; info: GgufInfo; modelPath: string } | null = null;
+let lastLoad: {
+  plan: LoadPlan;
+  info: GgufInfo;
+  modelPath: string;
+  projectorPath?: string;
+} | null = null;
 /** Model yükleme ilerlemesi (0-100). llama-server çıktısından okunur. */
 let loadProgress = 0;
 
@@ -33,11 +38,14 @@ export function llamaLoadState(): {
   plan: LoadPlan | null;
   info: GgufInfo | null;
   progress: number;
+  /** Bagli goruntu kodlayici. Yoksa gorsel gonderilemez. */
+  projector: string | null;
 } {
   return {
     plan: lastLoad?.plan ?? null,
     info: lastLoad?.info ?? null,
     progress: loadProgress,
+    projector: lastLoad?.projectorPath ? path.basename(lastLoad.projectorPath) : null,
   };
 }
 
@@ -78,7 +86,12 @@ export async function startLlama(
   }
 
   loadProgress = 0;
-  lastLoad = { plan, info, modelPath };
+  lastLoad = {
+    plan,
+    info,
+    modelPath,
+    ...(options.projectorPath ? { projectorPath: options.projectorPath } : {}),
+  };
   reserve(ENGINE_ID, plan.estimatedMb);
 
   const status = await llamaEngine.start({

@@ -5,6 +5,7 @@ import {
   type ConversationSummary,
   type SourceRef,
   type StoredMessage,
+  type ChatImage,
 } from "../lib/api";
 import { postEventStream } from "../lib/sse";
 
@@ -34,7 +35,10 @@ interface ChatState {
   newConversation: () => void;
   setCollection: (id: string | null) => void;
   removeConversation: (id: string) => Promise<void>;
-  send: (text: string, options: { provider: string; model: string }) => Promise<void>;
+  send: (
+    text: string,
+    options: { provider: string; model: string; images?: ChatImage[] },
+  ) => Promise<void>;
   stop: () => void;
 }
 
@@ -151,6 +155,7 @@ export const useChat = create<ChatState>((set, get) => ({
           provider: options.provider,
           model: options.model,
           collectionId: get().collectionId ?? undefined,
+          images: options.images?.length ? options.images : undefined,
         },
         { headers: authHeaders(), signal: activeAbort.signal },
       );

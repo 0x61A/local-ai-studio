@@ -95,6 +95,8 @@ export interface EngineInfo {
   footprintMb: number;
   progress: number;
   plan: { contextSize: number; gpuLayers: number; reason: string } | null;
+  /** Bağlı görüntü kodlayıcı; yoksa görsel gönderilemez. */
+  projector: string | null;
   budget: MemoryBudget;
 }
 
@@ -260,6 +262,11 @@ export interface AgentStatus {
 }
 
 export type PowerMode = "performance" | "balanced" | "eco" | "custom";
+
+export interface ChatImage {
+  base64: string;
+  mimeType?: string;
+}
 
 export interface Preferences {
   defaultProvider: string;
