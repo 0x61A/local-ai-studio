@@ -130,6 +130,9 @@ export function ModelsView() {
                 <div className="model__head">
                   <span className="model__name">{model.filename}</span>
                   <span className="model__size">{formatGb(model.sizeBytes / 1048576)}</span>
+                  {model.projector && (
+                    <span className="badge badge--success">{t("models.visionReady")}</span>
+                  )}
                 </div>
                 <p className="model__meta">
                   {model.error ? (
@@ -282,6 +285,15 @@ function CatalogCard({ model }: { model: CatalogModel }) {
 
   const isLoaded = localMatch && engine?.model === localMatch.filename;
 
+  /** Görsel modelde iki dosya var: dil modeli ve görüntü kodlayıcı.
+   *  Yalnızca ilkini indirmek modeli sessizce metin modeline çevirir. */
+  const downloadWithProjector = async () => {
+    await download(model.downloadUrl, model.recommendedFile, null);
+    if (model.projectorUrl && model.projectorFile) {
+      await download(model.projectorUrl, model.projectorFile, null);
+    }
+  };
+
   return (
     <div className="catalog-card">
       <div className="catalog-card__head">
@@ -313,6 +325,16 @@ function CatalogCard({ model }: { model: CatalogModel }) {
         </span>
       </div>
 
+      {model.projectorFile && (
+        <p className="facts__note">
+          {localMatch && !localMatch.projector
+            ? t("models.projectorMissing")
+            : t("models.projectorIncluded", {
+                size: formatGb(model.projectorSizeBytes / 1048576),
+              })}
+        </p>
+      )}
+
       <div className="catalog-card__actions">
         {localMatch ? (
           <button
@@ -334,7 +356,7 @@ function CatalogCard({ model }: { model: CatalogModel }) {
           <button
             type="button"
             className="button button--small"
-            onClick={() => void download(model.downloadUrl, model.recommendedFile, null)}
+            onClick={() => void downloadWithProjector()}
           >
             ↓ {t("models.quickDownload")}
           </button>

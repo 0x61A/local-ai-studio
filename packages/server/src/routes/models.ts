@@ -9,6 +9,7 @@ import type { Router } from "../http/router.js";
 import { downloads } from "../models/download.js";
 import { getCatalog } from "../models/catalog.js";
 import { GgufParseError, readGgufInfo } from "../models/gguf.js";
+import { findProjectorFor } from "../models/projector.js";
 import {
   getModelDetail,
   isProjector,
@@ -62,6 +63,8 @@ export interface LocalModel {
   quantization: string;
   contextLength: number;
   isEmbedding: boolean;
+  /** Eşleşen mmproj dosyası; yoksa görsel anlama çalışmaz. */
+  projector: string | null;
   /** Bu makinede çalışır mı, hangi ayarlarla. */
   fits: boolean;
   planReason: string;
@@ -93,6 +96,7 @@ function describeLocalModel(filename: string): LocalModel {
       quantization: info.quantization,
       contextLength: info.trainContextLength,
       isEmbedding: info.isEmbedding,
+      projector: findProjectorFor(MODELS_DIR, filename),
       fits: plan.fits,
       planReason: plan.reason,
       estimatedMb: plan.estimatedMb,
@@ -108,6 +112,7 @@ function describeLocalModel(filename: string): LocalModel {
       quantization: "?",
       contextLength: 0,
       isEmbedding: false,
+      projector: null,
       fits: false,
       planReason: "",
       estimatedMb: 0,
@@ -207,6 +212,11 @@ export function registerModelRoutes(router: Router): void {
     if (body.contextSize) options.contextSize = body.contextSize;
     if (body.projector) {
       options.projectorPath = resolveInside(MODELS_DIR, body.projector);
+    } else {
+      // Gorsel model projektorsuz yuklenirse hata vermez, sadece goremez.
+      // Eslesen dosya diskteyse elle secmesini beklemeyiz.
+      const auto = findProjectorFor(MODELS_DIR, body.filename);
+      if (auto) options.projectorPath = resolveInside(MODELS_DIR, auto);
     }
     if (body.powerMode) options.powerMode = body.powerMode;
     if (body.cpuThreads) options.cpuThreads = body.cpuThreads;

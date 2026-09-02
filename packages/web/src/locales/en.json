@@ -83,7 +83,10 @@
     "searching": "Searching…",
     "loadingFiles": "Reading files…",
     "recommended": "recommended",
-    "download": "Download"
+    "download": "Download",
+    "projectorIncluded": "Vision model: the image encoder downloads too (+{{size}}). Without both, the model cannot see images.",
+    "projectorMissing": "Image encoder (mmproj) is missing. The model loads but cannot see images.",
+    "visionReady": "Vision ready"
   },
   "knowledge": {
     "collections": "Collections",

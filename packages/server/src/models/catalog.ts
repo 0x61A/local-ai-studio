@@ -23,14 +23,28 @@ export interface CatalogModelItem {
   tagsTr: string[];
   tagsEn: string[];
   isEmbedding?: boolean;
+  /**
+   * Gorsel anlama projektoru (mmproj). Gorsel modeller iki dosyadir: dil
+   * modeli ve goruntu kodlayici. Yalnizca ilki indirilirse model calisir ama
+   * gorsel goremez -- sessizce metin modeline donusur.
+   */
+  projectorFile?: string;
+  projectorSizeBytes?: number;
 }
 
-export interface CatalogModelResponse extends Omit<CatalogModelItem, "descriptionTr" | "descriptionEn" | "tagsTr" | "tagsEn"> {
+export interface CatalogModelResponse
+  extends Omit<
+    CatalogModelItem,
+    "descriptionTr" | "descriptionEn" | "tagsTr" | "tagsEn" | "projectorFile" | "projectorSizeBytes"
+  > {
   description: string;
   tags: string[];
   fits: boolean;
   fitsReason: string;
   estimatedMb: number;
+  projectorFile: string | null;
+  projectorUrl: string | null;
+  projectorSizeBytes: number;
 }
 
 function hfUrl(repo: string, filename: string): string {
@@ -481,6 +495,8 @@ export const CATALOG_MODELS: CatalogModelItem[] = [
     minRamGb: 6.5,
     tagsTr: ["Görsel Anlama", "OCR", "Çok Modlu"],
     tagsEn: ["Vision", "OCR", "Multimodal"],
+    projectorFile: "mmproj-Qwen2-VL-7B-Instruct-f16.gguf",
+    projectorSizeBytes: 1_352_635_904,
   },
   {
     id: "llama-3.2-11b-vision-instruct",
@@ -497,6 +513,8 @@ export const CATALOG_MODELS: CatalogModelItem[] = [
     minRamGb: 9.5,
     tagsTr: ["Meta Vision", "Görsel + Metin", "128k"],
     tagsEn: ["Meta Vision", "Vision + Text", "128k"],
+    projectorFile: "Llama-3.2-11B-Vision-Instruct-mmproj.f16.gguf",
+    projectorSizeBytes: 1_938_763_584,
   },
   {
     id: "minicpm-v-2_6",
@@ -513,6 +531,8 @@ export const CATALOG_MODELS: CatalogModelItem[] = [
     minRamGb: 7.0,
     tagsTr: ["GPT-4V Benzeri", "Yüksek Çözünürlük"],
     tagsEn: ["GPT-4V Class", "High Resolution"],
+    projectorFile: "mmproj-MiniCPM-V-2_6-f16.gguf",
+    projectorSizeBytes: 1_044_425_152,
   },
 
   // -- Gömme & Bilgi Tabanı (Embeddings & RAG) -------------------------------
@@ -588,7 +608,10 @@ export const CATALOG_MODELS: CatalogModelItem[] = [
 
 export function getCatalog(lang: "tr" | "en" = "tr", freeBudgetMb = 8192): CatalogModelResponse[] {
   return CATALOG_MODELS.map((item) => {
-    const estimatedMb = Math.round((item.sizeBytes / (1024 * 1024)) * 1.2);
+    // Projektor de bellege giriyor; saymamak gorsel modelleri oldugundan
+    // kucuk gosterirdi.
+    const totalBytes = item.sizeBytes + (item.projectorSizeBytes ?? 0);
+    const estimatedMb = Math.round((totalBytes / (1024 * 1024)) * 1.2);
     const fits = freeBudgetMb >= estimatedMb;
     let fitsReason = "";
     if (lang === "tr") {
@@ -615,6 +638,9 @@ export function getCatalog(lang: "tr" | "en" = "tr", freeBudgetMb = 8192): Catal
       minRamGb: item.minRamGb,
       tags: lang === "tr" ? item.tagsTr : item.tagsEn,
       isEmbedding: item.isEmbedding ?? false,
+      projectorFile: item.projectorFile ?? null,
+      projectorUrl: item.projectorFile ? hfUrl(item.repo, item.projectorFile) : null,
+      projectorSizeBytes: item.projectorSizeBytes ?? 0,
       fits,
       fitsReason,
       estimatedMb,

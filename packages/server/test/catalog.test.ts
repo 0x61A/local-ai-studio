@@ -22,6 +22,10 @@ describe("LLM Model Kataloğu", () => {
     for (const model of CATALOG_MODELS) {
       expect(() => assertAllowedUrl(model.downloadUrl)).not.toThrow();
       expect(model.downloadUrl).toMatch(/^https:\/\/huggingface\.co\//);
+      if (model.projectorFile) {
+        const url = model.downloadUrl.replace(model.recommendedFile, model.projectorFile);
+        expect(() => assertAllowedUrl(url)).not.toThrow();
+      }
       expect(model.recommendedFile).toMatch(/\.gguf$/i);
       expect(model.sizeBytes).toBeGreaterThan(50_000_000);
       expect(model.contextLength).toBeGreaterThanOrEqual(512);

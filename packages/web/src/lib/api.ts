@@ -71,6 +71,8 @@ export interface LocalModel {
   quantization: string;
   contextLength: number;
   isEmbedding: boolean;
+  /** Eşleşen mmproj dosyası; yoksa görsel anlama çalışmaz. */
+  projector: string | null;
   fits: boolean;
   planReason: string;
   estimatedMb: number;
@@ -181,6 +183,10 @@ export interface CatalogModel {
   fits: boolean;
   fitsReason: string;
   estimatedMb: number;
+  /** Görsel modellerde mmproj dosyası; yoksa null. */
+  projectorFile: string | null;
+  projectorUrl: string | null;
+  projectorSizeBytes: number;
 }
 
 export interface HfFile {
