@@ -188,6 +188,26 @@ npm run dev:web     # vite dev sunucusu, /api isteklerini sunucuya proxy'ler
 Bu maddelerin cogu `packages/server/test/server.test.ts` ve
 `router.test.ts` icinde test edilir.
 
+### Kendi PyTorch modelinizi calistirmak
+
+Mimarisi GPT-2 olan (ogrenilen konum gomme, on-normalizasyon, birlesik QKV,
+4x GELU MLP, bagli cikis agirligi) bir PyTorch kontrol noktasi GGUF'a
+cevrilerek diger modeller gibi calisir:
+
+```bash
+python3 scripts/convert/pt-gpt2-to-gguf.py sft.pt bpe.json data/models/model.gguf
+```
+
+Betik bir **gelistirme aracidir, calisma zamani bagimliligi degil**:
+uygulamanin kendisi saf Node.js kalir, cevirme bir kez yapilir. Tokenizer
+HuggingFace `tokenizers` bicimindeki `bpe.json`dan okunur ve sohbet sablonu
+GGUF'un icine gomulur -- model arayuzde ve ajanda ozel bir kod yolu olmadan
+calisir.
+
+Cevirmek yerine modeli TypeScript'te yeniden yazmak da mumkundu; cevirmek
+akis, arac cagirma, butce yoneticisi, ajan ve RAG'in tamamini bedava
+kazandiriyor.
+
 ### Bilinen bosluk: tarayici otomasyonu isteğe bagli
 
 Playwright + Chromium ~150 MB ve kullanicilarin cogu tarayici otomasyonu

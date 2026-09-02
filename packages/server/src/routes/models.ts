@@ -49,7 +49,10 @@ async function lookupHfSha256(rawUrl: string, filename: string): Promise<string 
     if (parts.length < 3 || parts[2] !== "resolve") return null;
     const detail = await getModelDetail(`${parts[0]}/${parts[1]}`);
     const wanted = decodeURIComponent(parts.slice(4).join("/")) || filename;
-    return detail.files.find((file) => file.path === wanted)?.sha256 ?? null;
+    // `files` yalnizca dil modellerini tasiyor; projektor ayri alanda.
+    // Yalnizca `files`e bakmak mmproj indirmesini dogrulamasiz birakiyordu.
+    const candidates = detail.projector ? [...detail.files, detail.projector] : detail.files;
+    return candidates.find((file) => file.path === wanted)?.sha256 ?? null;
   } catch {
     return null;
   }
