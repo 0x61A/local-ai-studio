@@ -11,13 +11,25 @@ const SecretBody = z.object({
   apiKey: z.string().min(1).max(500),
 });
 
-const PreferencesBody = z.object({
-  defaultProvider: z.enum(PROVIDER_IDS).optional(),
-  defaultModel: z.string().max(200).optional(),
-  systemPrompt: z.string().max(8000).optional(),
-  temperature: z.number().min(0).max(2).optional(),
-  maxTokens: z.number().int().min(1).max(200_000).optional(),
-});
+export const POWER_MODES = ["performance", "balanced", "eco", "custom"] as const;
+export type PowerMode = (typeof POWER_MODES)[number];
+
+const PreferencesBody = z
+  .object({
+    defaultProvider: z.enum(PROVIDER_IDS).optional(),
+    defaultModel: z.string().max(200).optional(),
+    systemPrompt: z.string().max(8000).optional(),
+    temperature: z.number().min(0).max(2).optional(),
+    maxTokens: z.number().int().min(1).max(200_000).optional(),
+    powerMode: z.enum(POWER_MODES).optional(),
+    cpuThreads: z.number().int().min(0).max(128).optional(),
+    ubatchSize: z.number().int().min(32).max(1024).optional(),
+    gpuOffload: z.boolean().optional(),
+  })
+  // .passthrough() YOK: bilinmeyen anahtarlar duserilir. Aksi halde
+  // tercih deposuna keyfi JSON yazilabilirdi ve `Required<Preferences>`
+  // dizin imzasi kazanip her alani `unknown` yapardi.
+  .strict();
 export type Preferences = z.infer<typeof PreferencesBody>;
 
 const DEFAULT_PREFERENCES: Required<Preferences> = {
@@ -26,6 +38,10 @@ const DEFAULT_PREFERENCES: Required<Preferences> = {
   systemPrompt: "",
   temperature: 0.7,
   maxTokens: 2048,
+  powerMode: "balanced",
+  cpuThreads: 0,
+  ubatchSize: 256,
+  gpuOffload: true,
 };
 
 export function getPreferences(): Required<Preferences> {

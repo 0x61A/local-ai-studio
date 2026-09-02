@@ -155,6 +155,34 @@ export interface HfModelSummary {
   gated: boolean;
 }
 
+export type CatalogCategory =
+  | "popular"
+  | "reasoning"
+  | "coding"
+  | "lightweight"
+  | "large"
+  | "vision"
+  | "embedding";
+
+export interface CatalogModel {
+  id: string;
+  name: string;
+  repo: string;
+  category: CatalogCategory;
+  description: string;
+  parameters: string;
+  contextLength: number;
+  recommendedFile: string;
+  sizeBytes: number;
+  downloadUrl: string;
+  minRamGb: number;
+  tags: string[];
+  isEmbedding: boolean;
+  fits: boolean;
+  fitsReason: string;
+  estimatedMb: number;
+}
+
 export interface HfFile {
   path: string;
   sizeBytes: number;
@@ -225,12 +253,18 @@ export interface AgentStatus {
   browser: { installed: boolean; open: boolean };
 }
 
+export type PowerMode = "performance" | "balanced" | "eco" | "custom";
+
 export interface Preferences {
   defaultProvider: string;
   defaultModel: string;
   systemPrompt: string;
   temperature: number;
   maxTokens: number;
+  powerMode?: PowerMode;
+  cpuThreads?: number;
+  ubatchSize?: number;
+  gpuOffload?: boolean;
 }
 
 export interface KnowledgeCollection {
@@ -422,6 +456,10 @@ export const api = {
   health: () => request<HealthStatus>("/api/health"),
 
   models: () => request<{ models: LocalModel[]; budget: MemoryBudget }>("/api/models"),
+  catalog: (lang?: "tr" | "en") =>
+    request<{ catalog: CatalogModel[]; budget: MemoryBudget }>(
+      lang ? `/api/models/catalog?lang=${lang}` : "/api/models/catalog",
+    ),
   deleteModel: (filename: string) =>
     request<{ ok: boolean }>(`/api/models/${encodeURIComponent(filename)}`, {
       method: "DELETE",

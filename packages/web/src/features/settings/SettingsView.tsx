@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, type Preferences } from "../../lib/api";
+import { api, type PowerMode, type Preferences } from "../../lib/api";
 import { useModels } from "../../stores/models";
 import { useUi } from "../../stores/ui";
 import { McpPanel } from "./McpPanel";
@@ -7,9 +7,11 @@ import { SearchKeys } from "./SearchKeys";
 
 export function SettingsView() {
   const t = useUi((s) => s.t);
-  const { providers, refresh } = useModels();
+  const providers = useModels((s) => s.providers);
+  const refresh = useModels((s) => s.refresh);
   const [preferences, setPreferences] = useState<Preferences | null>(null);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     void refresh();
@@ -17,10 +19,24 @@ export function SettingsView() {
   }, [refresh]);
 
   const save = async (patch: Partial<Preferences>) => {
-    const result = await api.saveSettings(patch);
-    setPreferences(result.preferences);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    // Iyimser guncelleme: anahtar/slider aninda tepki versin.
+    const previous = preferences;
+    setPreferences((prev) => (prev ? { ...prev, ...patch } : (patch as Preferences)));
+    try {
+      const result = await api.saveSettings(patch);
+      setPreferences((prev) => ({
+        ...(prev ?? {}),
+        ...(result.preferences ?? {}),
+        ...patch,
+      } as Preferences));
+      setSaveError(null);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      // Sessizce yutmak, kaydedilmemis bir ayari kaydedilmis gostermek olurdu.
+      setPreferences(previous);
+      setSaveError(t("settings.saveFailed", { message: (err as Error).message }));
+    }
   };
 
   return (
@@ -49,6 +65,14 @@ export function SettingsView() {
       <SearchKeys />
 
       <McpPanel />
+
+      {saveError && (
+        <p className="chat__error" role="alert">
+          {saveError}
+        </p>
+      )}
+
+      {preferences && <ResourceThermalPanel preferences={preferences} save={save} />}
 
       {preferences && (
         <section className="card">
@@ -183,5 +207,180 @@ function ProviderKey({
       </form>
       {status && <p className="facts__note">{status}</p>}
     </div>
+  );
+}
+
+const MODES: PowerMode[] = ["performance", "balanced", "eco", "custom"];
+const MODE_ICONS: Record<PowerMode, string> = {
+  performance: "⚡",
+  balanced: "⚖️",
+  eco: "🍃",
+  custom: "🛠️",
+};
+const MODE_LABEL_KEY: Record<PowerMode, string> = {
+  performance: "settings.powerPerformance",
+  balanced: "settings.powerBalanced",
+  eco: "settings.powerEco",
+  custom: "settings.powerCustom",
+};
+const MODE_DESC_KEY: Record<PowerMode, string> = {
+  performance: "settings.powerPerformanceDesc",
+  balanced: "settings.powerBalancedDesc",
+  eco: "settings.powerEcoDesc",
+  custom: "settings.powerCustomDesc",
+};
+/** Cekirdek yuzdesi. Bicimi dile birakiyoruz: "%70" ile "70%" ayni degil. */
+const MODE_BADGE_PERCENT: Record<PowerMode, number | null> = {
+  performance: 100,
+  balanced: 70,
+  eco: 35,
+  custom: null,
+};
+const MODE_BADGE_CLASS: Record<PowerMode, string> = {
+  performance: "badge--accent",
+  balanced: "badge--success",
+  eco: "badge--warning",
+  custom: "",
+};
+
+function ResourceThermalPanel({
+  preferences,
+  save,
+}: {
+  preferences: Preferences;
+  save: (patch: Partial<Preferences>) => Promise<void>;
+}) {
+  const t = useUi((s) => s.t);
+  const [systemInfo, setSystemInfo] = useState<{ physicalCores: number } | null>(null);
+  // Kendi yerel state'imiz — üst bileşenin async save'inden bağımsız, anında tepki verir.
+  const [localMode, setLocalMode] = useState<PowerMode>(preferences.powerMode ?? "balanced");
+  const [localThreads, setLocalThreads] = useState(preferences.cpuThreads ?? 0);
+  const [localUbatch, setLocalUbatch] = useState(preferences.ubatchSize ?? 256);
+  const [localGpu, setLocalGpu] = useState(preferences.gpuOffload !== false);
+
+  useEffect(() => {
+    void api.system().then((sys) => {
+      setSystemInfo({ physicalCores: sys.cpu.physicalCores });
+    });
+  }, []);
+
+  const maxCores = systemInfo?.physicalCores || 8;
+  const displayThreads =
+    localThreads > 0 ? localThreads : Math.max(1, Math.round(maxCores * 0.7));
+
+  const selectMode = (mode: PowerMode) => {
+    setLocalMode(mode);
+    void save({ powerMode: mode });
+  };
+
+  // Slider surukleme sirasinda yalnizca yerel state degisir. Her tikta POST
+  // atmak 16 cekirdekli bir makinede tek surukleyiste 16 veritabani yazimi
+  // demekti; kayit birakilinca yapilir.
+  const updateThreads = (n: number) => setLocalThreads(n);
+  const commitThreads = () => {
+    if (localThreads !== (preferences.cpuThreads ?? 0)) {
+      void save({ cpuThreads: localThreads });
+    }
+  };
+
+  const updateUbatch = (n: number) => {
+    setLocalUbatch(n);
+    void save({ ubatchSize: n });
+  };
+
+  const updateGpu = (on: boolean) => {
+    setLocalGpu(on);
+    void save({ gpuOffload: on });
+  };
+
+  return (
+    <section className="card">
+      <h2 className="card__title">{t("settings.resourceTitle")}</h2>
+      <p className="facts__note">{t("settings.resourceNote")}</p>
+      <p className="facts__note">{t("settings.resourceApplyNote")}</p>
+
+      <div className="power-grid">
+        {MODES.map((mode) => {
+          const active = localMode === mode;
+          return (
+            <button
+              key={mode}
+              type="button"
+              className={`power-card${active ? " power-card--active" : ""}`}
+              onClick={() => selectMode(mode)}
+            >
+              <div className="power-card__header">
+                <span className="power-card__title">
+                  <span className="power-card__radio">
+                    <span className="power-card__radio-dot" />
+                  </span>
+                  {MODE_ICONS[mode]} {t(MODE_LABEL_KEY[mode])}
+                </span>
+                {MODE_BADGE_PERCENT[mode] !== null && (
+                  <span className={`badge ${MODE_BADGE_CLASS[mode]}`}>
+                    {t("settings.powerPercent", { n: MODE_BADGE_PERCENT[mode] })}
+                  </span>
+                )}
+              </div>
+              <p className="power-card__desc">{t(MODE_DESC_KEY[mode])}</p>
+              {active && (
+                <span className="power-card__check">✓ {t("settings.selected")}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {localMode === "custom" && (
+        <div className="custom-controls">
+          <label className="facts__row">
+            <span className="facts__label">
+              {t("settings.cpuThreads")}: {t("settings.cpuThreadsVal", { n: displayThreads })} / {maxCores}
+            </span>
+            <input
+              className="input"
+              type="range"
+              min={1}
+              max={maxCores}
+              step={1}
+              value={displayThreads}
+              onChange={(e) => updateThreads(Number(e.target.value))}
+              onPointerUp={commitThreads}
+              onBlur={commitThreads}
+              onKeyUp={commitThreads}
+            />
+          </label>
+
+          <label className="facts__row">
+            <span className="facts__label">{t("settings.ubatchSize")}</span>
+            <select
+              className="input"
+              value={localUbatch}
+              onChange={(e) => updateUbatch(Number(e.target.value))}
+            >
+              <option value={64}>{t("settings.ubatch64")}</option>
+              <option value={128}>{t("settings.ubatch128")}</option>
+              <option value={256}>{t("settings.ubatch256")}</option>
+              <option value={512}>{t("settings.ubatch512")}</option>
+            </select>
+          </label>
+          <p className="facts__note" style={{ margin: 0 }}>
+            {t("settings.ubatchDesc")}
+          </p>
+
+          <label className="custom-controls__toggle">
+            <input
+              type="checkbox"
+              checked={localGpu}
+              onChange={(e) => updateGpu(e.target.checked)}
+            />
+            <span>{t("settings.gpuOffload")}</span>
+          </label>
+          <p className="facts__note" style={{ margin: 0 }}>
+            {t("settings.gpuOffloadDesc")}
+          </p>
+        </div>
+      )}
+    </section>
   );
 }

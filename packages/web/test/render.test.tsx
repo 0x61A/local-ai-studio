@@ -54,6 +54,11 @@ vi.mock("../src/lib/api", async () => {
           models: [],
           budget: { budgetMb: 6000, usedMb: 0, freeMb: 6000, unifiedMemory: true },
         }),
+      catalog: () =>
+        Promise.resolve({
+          catalog: [],
+          budget: { budgetMb: 6000, usedMb: 0, freeMb: 6000, unifiedMemory: true },
+        }),
       engine: () => Promise.resolve(null),
       providers: empty,
       providerModels: () => Promise.resolve({ models: [], error: null }),

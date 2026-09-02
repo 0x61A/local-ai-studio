@@ -7,6 +7,7 @@ import { getBudget, planLoad } from "../hardware/budget.js";
 import { HttpError } from "../http/errors.js";
 import type { Router } from "../http/router.js";
 import { downloads } from "../models/download.js";
+import { getCatalog } from "../models/catalog.js";
 import { GgufParseError, readGgufInfo } from "../models/gguf.js";
 import {
   getModelDetail,
@@ -26,7 +27,32 @@ const LoadBody = z.object({
   filename: z.string().min(1).max(255),
   contextSize: z.number().int().min(512).max(1_000_000).optional(),
   projector: z.string().max(255).optional(),
+  powerMode: z.enum(["performance", "balanced", "eco", "custom"]).optional(),
+  cpuThreads: z.number().int().min(1).max(128).optional(),
+  ubatchSize: z.number().int().min(32).max(1024).optional(),
+  gpuOffload: z.boolean().optional(),
 });
+
+/**
+ * Hugging Face adresinden dosyanin beklenen SHA256'sini bulur.
+ *
+ * Bulunamazsa null doner: hash yoksa indirme yine de yapilir (eski davranis),
+ * ama bulunabildigi her yerde dogrulanir.
+ */
+async function lookupHfSha256(rawUrl: string, filename: string): Promise<string | null> {
+  try {
+    const url = new URL(rawUrl);
+    if (url.hostname !== "huggingface.co") return null;
+    // /<owner>/<name>/resolve/<rev>/<path>
+    const parts = url.pathname.split("/").filter(Boolean);
+    if (parts.length < 3 || parts[2] !== "resolve") return null;
+    const detail = await getModelDetail(`${parts[0]}/${parts[1]}`);
+    const wanted = decodeURIComponent(parts.slice(4).join("/")) || filename;
+    return detail.files.find((file) => file.path === wanted)?.sha256 ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export interface LocalModel {
   filename: string;
@@ -99,6 +125,18 @@ export function registerModelRoutes(router: Router): void {
     budget: getBudget(),
   }));
 
+  router.get(
+    "/api/models/catalog",
+    { query: z.object({ lang: z.enum(["tr", "en"]).optional() }).optional() },
+    ({ query }) => {
+      const budget = getBudget();
+      return {
+        catalog: getCatalog(query?.lang ?? "tr", budget.freeMb),
+        budget,
+      };
+    },
+  );
+
   router.del("/api/models/:filename", {}, ({ params }) => {
     const target = resolveInside(MODELS_DIR, params["filename"] as string);
     if (!fs.existsSync(target)) throw HttpError.notFound("Model dosyası bulunamadı.");
@@ -133,14 +171,18 @@ export function registerModelRoutes(router: Router): void {
 
   router.get("/api/downloads", {}, () => downloads.list());
 
-  router.post("/api/downloads", { body: DownloadBody }, ({ body }) =>
-    downloads.enqueue({
+  router.post("/api/downloads", { body: DownloadBody }, async ({ body }) => {
+    // Katalog karti dosya listesini hic cekmedigi icin elinde hash yok.
+    // Dogrulamasiz indirmek projenin kendi guvenlik sozunu bozardi; hash'i
+    // burada, tek yerde, Hugging Face'in kendi listesinden tamamliyoruz.
+    const sha256 = body.sha256 ?? (await lookupHfSha256(body.url, body.filename));
+    return downloads.enqueue({
       url: body.url,
       filename: body.filename,
       targetDir: MODELS_DIR,
-      expectedSha256: body.sha256 ?? null,
-    }),
-  );
+      expectedSha256: sha256,
+    });
+  });
 
   router.del("/api/downloads/:id", {}, ({ params }) => ({
     ok: downloads.cancel(params["id"] as string),
@@ -166,6 +208,10 @@ export function registerModelRoutes(router: Router): void {
     if (body.projector) {
       options.projectorPath = resolveInside(MODELS_DIR, body.projector);
     }
+    if (body.powerMode) options.powerMode = body.powerMode;
+    if (body.cpuThreads) options.cpuThreads = body.cpuThreads;
+    if (body.ubatchSize) options.ubatchSize = body.ubatchSize;
+    if (body.gpuOffload !== undefined) options.gpuOffload = body.gpuOffload;
     try {
       const status = await startLlama(modelPath, options);
       if (status.state !== "ready") {

@@ -2,7 +2,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { setupCommand } from "../config.js";
 import { planLoad, release, reserve, type LoadPlan } from "../hardware/budget.js";
+import { getPhysicalCores } from "../hardware/detect.js";
 import { readGgufInfo, type GgufInfo } from "../models/gguf.js";
+import { getPreferences, type PowerMode } from "../routes/settings.js";
 import { Engine, engineBinary, httpProbe, type EngineStatus } from "./supervisor.js";
 
 /**
@@ -45,6 +47,11 @@ export interface LlamaStartOptions {
   projectorPath?: string;
   /** Gömme modu: sohbet yerine /v1/embeddings sunar. */
   embedding?: boolean;
+  /** İsteğe bağlı güç modu ve çekirdek sınırları. */
+  powerMode?: PowerMode;
+  cpuThreads?: number;
+  ubatchSize?: number;
+  gpuOffload?: boolean;
 }
 
 export async function startLlama(
@@ -105,18 +112,67 @@ export async function stopLlama(): Promise<EngineStatus> {
   return status;
 }
 
+export function resolveResourceLimits(
+  options: LlamaStartOptions = {},
+  preferences = getPreferences(),
+): { threads: number; ubatchSize: number; gpuOffload: boolean } {
+  const physicalCores = getPhysicalCores();
+  const powerMode = options.powerMode ?? preferences.powerMode ?? "balanced";
+  const customThreads = options.cpuThreads ?? preferences.cpuThreads;
+  const customUbatch = options.ubatchSize ?? preferences.ubatchSize;
+  const gpuOffload = options.gpuOffload ?? preferences.gpuOffload ?? true;
+
+  let threads = Math.max(1, Math.round(physicalCores * 0.7));
+  let ubatchSize = 256;
+
+  switch (powerMode) {
+    case "performance":
+      threads = Math.max(1, physicalCores);
+      ubatchSize = 512;
+      break;
+    case "eco":
+      // Isınma ve fan sesini engellemek için çekirdeklerin ~%35'i ve max 4 çekirdek
+      threads = Math.max(1, Math.min(4, Math.round(physicalCores * 0.35)));
+      ubatchSize = 128;
+      break;
+    case "custom":
+      threads =
+        customThreads && customThreads > 0
+          ? Math.min(physicalCores * 2, customThreads)
+          : Math.max(1, Math.round(physicalCores * 0.7));
+      ubatchSize = customUbatch && customUbatch >= 32 ? customUbatch : 256;
+      break;
+    case "balanced":
+    default:
+      threads = Math.max(1, Math.round(physicalCores * 0.7));
+      ubatchSize = 256;
+      break;
+  }
+
+  return { threads, ubatchSize, gpuOffload };
+}
+
 export function buildArgs(
   modelPath: string,
   port: number,
   plan: LoadPlan,
   options: LlamaStartOptions = {},
 ): string[] {
+  const limits = resolveResourceLimits(options);
+  const gpuLayers = limits.gpuOffload
+    ? plan.gpuLayers < 0
+      ? "999"
+      : String(plan.gpuLayers)
+    : "0";
+
   const common = [
     "--model", modelPath,
     "--host", "127.0.0.1",
     "--port", String(port),
     "--ctx-size", String(plan.contextSize),
-    "--n-gpu-layers", plan.gpuLayers < 0 ? "999" : String(plan.gpuLayers),
+    "--n-gpu-layers", gpuLayers,
+    "--threads", String(limits.threads),
+    "--threads-batch", String(limits.threads),
     // Yerleşik web arayüzü gereksiz: bizim arayüzümüz var.
     "--no-webui",
   ];
@@ -136,6 +192,7 @@ export function buildArgs(
 
   const args = [
     ...common,
+    "--ubatch-size", String(limits.ubatchSize),
     // Modelin kendi sohbet şablonunu kullanır; araç çağrısı desteği bununla gelir.
     "--jinja",
     // Flash attention KV önbelleğini nicemlemenin ön koşulu.

@@ -1,18 +1,32 @@
-import { useEffect, useState } from "react";
-import { api, type HfFile, type HfModelSummary } from "../../lib/api";
+import { useEffect, useMemo, useState } from "react";
+import { api, type CatalogCategory, type CatalogModel, type HfFile, type HfModelSummary } from "../../lib/api";
 import { formatGb } from "../../lib/format";
 import { useModels } from "../../stores/models";
 import { useUi } from "../../stores/ui";
 
+const CATEGORIES: Array<{ key: CatalogCategory | "all"; labelKey: string }> = [
+  { key: "all", labelKey: "models.categoryAll" },
+  { key: "popular", labelKey: "models.categoryPopular" },
+  { key: "reasoning", labelKey: "models.categoryReasoning" },
+  { key: "coding", labelKey: "models.categoryCoding" },
+  { key: "lightweight", labelKey: "models.categoryLightweight" },
+  { key: "large", labelKey: "models.categoryLarge" },
+  { key: "vision", labelKey: "models.categoryVision" },
+  { key: "embedding", labelKey: "models.categoryEmbedding" },
+];
+
 export function ModelsView() {
   const t = useUi((s) => s.t);
+  const lang = useUi((s) => s.language);
   const {
     local,
+    catalog,
     engine,
     downloads,
     busy,
     error,
     refresh,
+    loadCatalog,
     refreshDownloads,
     loadEngine,
     unloadEngine,
@@ -23,10 +37,11 @@ export function ModelsView() {
   useEffect(() => {
     void refresh();
     void refreshDownloads();
+    void loadCatalog(lang);
     // İndirme sürerken ilerlemeyi göstermek için kısa aralıkla yokla.
     const timer = setInterval(() => void refreshDownloads(), 1000);
     return () => clearInterval(timer);
-  }, [refresh, refreshDownloads]);
+  }, [refresh, refreshDownloads, loadCatalog, lang]);
 
   const active = downloads.filter(
     (task) => task.state === "downloading" || task.state === "queued" || task.state === "verifying",
@@ -153,14 +168,239 @@ export function ModelsView() {
         )}
       </section>
 
-      <HuggingFaceSearch />
+      <CatalogSection catalog={catalog} />
+
+      <CustomHuggingFaceSearch />
     </div>
   );
 }
 
-function HuggingFaceSearch() {
+function CatalogSection({ catalog }: { catalog: CatalogModel[] }) {
+  const t = useUi((s) => s.t);
+  const [selectedCategory, setSelectedCategory] = useState<CatalogCategory | "all">("all");
+  const [filterText, setFilterText] = useState("");
+
+  const filtered = useMemo(() => {
+    const query = filterText.trim().toLowerCase();
+    return catalog.filter((item) => {
+      if (selectedCategory !== "all" && item.category !== selectedCategory) {
+        return false;
+      }
+      if (!query) return true;
+      return (
+        item.name.toLowerCase().includes(query) ||
+        item.repo.toLowerCase().includes(query) ||
+        item.parameters.toLowerCase().includes(query) ||
+        item.description.toLowerCase().includes(query) ||
+        item.tags.some((tag) => tag.toLowerCase().includes(query))
+      );
+    });
+  }, [catalog, selectedCategory, filterText]);
+
+  return (
+    <section className="card">
+      <div className="catalog-header">
+        <div>
+          <h2 className="card__title">{t("models.catalogTitle")}</h2>
+          <p className="facts__note">{t("models.catalogNote")}</p>
+        </div>
+
+        <div className="catalog-tabs" role="tablist">
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat.key}
+              type="button"
+              role="tab"
+              aria-selected={selectedCategory === cat.key}
+              className={`catalog-tab ${selectedCategory === cat.key ? "catalog-tab--active" : ""}`}
+              onClick={() => setSelectedCategory(cat.key)}
+            >
+              {t(cat.labelKey as never)}
+            </button>
+          ))}
+        </div>
+
+        <input
+          className="input input--compact"
+          type="search"
+          value={filterText}
+          placeholder={t("models.filterPlaceholder")}
+          onChange={(e) => setFilterText(e.target.value)}
+        />
+      </div>
+
+      {filtered.length === 0 ? (
+        <p className="facts__note">{t("models.noCatalogMatch")}</p>
+      ) : (
+        <div className="catalog-grid">
+          {filtered.map((item) => (
+            <CatalogCard key={item.id} model={item} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function CatalogCard({ model }: { model: CatalogModel }) {
+  const t = useUi((s) => s.t);
+  const { local, engine, downloads, busy, loadEngine, download } = useModels();
+  const [expanded, setExpanded] = useState(false);
+  const [files, setFiles] = useState<HfFile[]>([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
+
+  const localMatch = local.find(
+    (l) =>
+      l.filename.toLowerCase() === model.recommendedFile.toLowerCase() ||
+      l.filename.toLowerCase().includes(model.id.toLowerCase()),
+  );
+
+  const activeDownload = downloads.find(
+    (d) =>
+      d.filename.toLowerCase() === model.recommendedFile.toLowerCase() &&
+      (d.state === "downloading" || d.state === "queued" || d.state === "verifying"),
+  );
+
+  const toggleFiles = async () => {
+    if (expanded) {
+      setExpanded(false);
+      return;
+    }
+    setExpanded(true);
+    if (files.length === 0) {
+      setLoadingFiles(true);
+      try {
+        const detail = await api.hfModel(model.repo);
+        setFiles(detail.files);
+      } catch {
+        // Hata durumunda boş liste kalır
+      } finally {
+        setLoadingFiles(false);
+      }
+    }
+  };
+
+  const isLoaded = localMatch && engine?.model === localMatch.filename;
+
+  return (
+    <div className="catalog-card">
+      <div className="catalog-card__head">
+        <div className="catalog-card__title">
+          <span className="catalog-card__name">{model.name}</span>
+          <span className="catalog-card__repo">{model.repo}</span>
+        </div>
+        <div className="catalog-card__badges">
+          <span className="badge badge--accent">{model.parameters}</span>
+          <span className="badge">{formatGb(model.sizeBytes / 1048576)}</span>
+        </div>
+      </div>
+
+      <p className="catalog-card__desc">{model.description}</p>
+
+      <div className="catalog-card__tags">
+        {model.tags.map((tag) => (
+          <span key={tag} className="catalog-tag">
+            {tag}
+          </span>
+        ))}
+      </div>
+
+      <div className="catalog-card__meta">
+        <span>{t("models.contextWindow", { n: model.contextLength.toLocaleString("tr") })}</span>
+        <span className={`catalog-card__compatibility ${model.fits ? "badge--success" : "badge--warning"}`}>
+          {model.fits ? "✓ " : "⚠️ "}
+          {model.fitsReason}
+        </span>
+      </div>
+
+      <div className="catalog-card__actions">
+        {localMatch ? (
+          <button
+            type="button"
+            className="button button--small"
+            disabled={busy || isLoaded}
+            onClick={() => void loadEngine(localMatch.filename)}
+          >
+            {isLoaded ? t("models.active") : t("models.load")}
+          </button>
+        ) : activeDownload ? (
+          <span className="badge badge--accent">
+            {t("models.downloading")}{" "}
+            {activeDownload.totalBytes > 0
+              ? `${Math.round((activeDownload.downloadedBytes / activeDownload.totalBytes) * 100)}%`
+              : ""}
+          </span>
+        ) : (
+          <button
+            type="button"
+            className="button button--small"
+            onClick={() => void download(model.downloadUrl, model.recommendedFile, null)}
+          >
+            ↓ {t("models.quickDownload")}
+          </button>
+        )}
+
+        <button
+          type="button"
+          className="button button--ghost button--small"
+          onClick={() => void toggleFiles()}
+        >
+          {expanded ? t("models.hideFiles") : t("models.allFiles")}
+        </button>
+      </div>
+
+      {expanded && (
+        <div>
+          {loadingFiles ? (
+            <p className="facts__note">{t("models.loadingFiles")}</p>
+          ) : files.length === 0 ? (
+            <p className="facts__note">{t("models.noCatalogMatch")}</p>
+          ) : (
+            <ul className="file-list">
+              {files.map((file) => {
+                const isFileDownloaded = local.some((l) => l.filename === file.path);
+                const isFileDownloading = downloads.some(
+                  (d) =>
+                    d.filename === file.path &&
+                    (d.state === "downloading" || d.state === "queued" || d.state === "verifying"),
+                );
+                return (
+                  <li className="file" key={file.path}>
+                    <span className="file__name">
+                      {file.path}
+                      {file.path === model.recommendedFile && (
+                        <span className="file__badge">{t("models.recommendedBadge")}</span>
+                      )}
+                    </span>
+                    <span className="file__size">{formatGb(file.sizeBytes / 1048576)}</span>
+                    <button
+                      type="button"
+                      className="button button--small"
+                      disabled={isFileDownloaded || isFileDownloading}
+                      onClick={() => void download(file.downloadUrl, file.path, file.sha256)}
+                    >
+                      {isFileDownloaded
+                        ? t("models.downloaded")
+                        : isFileDownloading
+                          ? t("models.downloading")
+                          : t("models.download")}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CustomHuggingFaceSearch() {
   const t = useUi((s) => s.t);
   const download = useModels((s) => s.download);
+  const local = useModels((s) => s.local);
+  const downloads = useModels((s) => s.downloads);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<HfModelSummary[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -199,7 +439,8 @@ function HuggingFaceSearch() {
 
   return (
     <section className="card">
-      <h2 className="card__title">{t("models.discover")}</h2>
+      <h2 className="card__title">{t("models.customSearchTitle")}</h2>
+      <p className="facts__note">{t("models.customSearchNote")}</p>
       <form
         className="search-row"
         onSubmit={(event) => {
@@ -238,28 +479,41 @@ function HuggingFaceSearch() {
 
             {expanded === result.id && files.length > 0 && (
               <ul className="file-list">
-                {files.map((file) => (
-                  <li className="file" key={file.path}>
-                    <span className="file__name">
-                      {file.path}
-                      {file.path === recommended && (
-                        <span className="file__badge">{t("models.recommended")}</span>
-                      )}
-                    </span>
-                    <span className="file__size">
-                      {formatGb(file.sizeBytes / 1048576)}
-                    </span>
-                    <button
-                      type="button"
-                      className="button button--small"
-                      onClick={() =>
-                        void download(file.downloadUrl, file.path, file.sha256)
-                      }
-                    >
-                      {t("models.download")}
-                    </button>
-                  </li>
-                ))}
+                {files.map((file) => {
+                  const isFileDownloaded = local.some((l) => l.filename === file.path);
+                  const isFileDownloading = downloads.some(
+                    (d) =>
+                      d.filename === file.path &&
+                      (d.state === "downloading" || d.state === "queued" || d.state === "verifying"),
+                  );
+                  return (
+                    <li className="file" key={file.path}>
+                      <span className="file__name">
+                        {file.path}
+                        {file.path === recommended && (
+                          <span className="file__badge">{t("models.recommended")}</span>
+                        )}
+                      </span>
+                      <span className="file__size">
+                        {formatGb(file.sizeBytes / 1048576)}
+                      </span>
+                      <button
+                        type="button"
+                        className="button button--small"
+                        disabled={isFileDownloaded || isFileDownloading}
+                        onClick={() =>
+                          void download(file.downloadUrl, file.path, file.sha256)
+                        }
+                      >
+                        {isFileDownloaded
+                          ? t("models.downloaded")
+                          : isFileDownloading
+                            ? t("models.downloading")
+                            : t("models.download")}
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </li>

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import {
   api,
+  type CatalogModel,
   type DownloadTask,
   type EngineInfo,
   type LocalModel,
@@ -10,6 +11,7 @@ import {
 
 interface ModelsState {
   local: LocalModel[];
+  catalog: CatalogModel[];
   engine: EngineInfo | null;
   downloads: DownloadTask[];
   providers: ProviderInfo[];
@@ -20,17 +22,19 @@ interface ModelsState {
   error: string | null;
 
   refresh: () => Promise<void>;
+  loadCatalog: (lang?: "tr" | "en") => Promise<void>;
   refreshDownloads: () => Promise<void>;
   loadProviderModels: (id: string) => Promise<void>;
   loadEngine: (filename: string) => Promise<void>;
   unloadEngine: () => Promise<void>;
   deleteModel: (filename: string) => Promise<void>;
-  download: (url: string, filename: string, sha256: string | null) => Promise<void>;
+  download: (url: string, filename: string, sha256?: string | null) => Promise<void>;
   cancelDownload: (id: string) => Promise<void>;
 }
 
 export const useModels = create<ModelsState>((set, get) => ({
   local: [],
+  catalog: [],
   engine: null,
   downloads: [],
   providers: [],
@@ -41,6 +45,9 @@ export const useModels = create<ModelsState>((set, get) => ({
 
   refresh: async () => {
     try {
+      // Katalog burada cekilmiyor: dile bagli ve gorunum zaten loadCatalog(lang)
+      // cagiriyor. Ikisini birden yapmak her yenilemede fazladan bir istek ve
+      // bir an icin yanlis dilde katalog demekti.
       const [models, engine, providers] = await Promise.all([
         api.models(),
         api.engine(),
@@ -49,6 +56,15 @@ export const useModels = create<ModelsState>((set, get) => ({
       set({ local: models.models, engine, providers, error: null });
     } catch (err) {
       set({ error: (err as Error).message });
+    }
+  },
+
+  loadCatalog: async (lang) => {
+    try {
+      const data = await api.catalog(lang);
+      set({ catalog: data.catalog });
+    } catch {
+      // Katalog yüklenemezse arayüz çökmemeli
     }
   },
 
