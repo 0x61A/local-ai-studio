@@ -21,6 +21,8 @@ const PreferencesBody = z
     systemPrompt: z.string().max(8000).optional(),
     temperature: z.number().min(0).max(2).optional(),
     maxTokens: z.number().int().min(1).max(200_000).optional(),
+    /** Yerel motorda tekrar cezasi. 1 = kapali. */
+    repeatPenalty: z.number().min(1).max(2).optional(),
     powerMode: z.enum(POWER_MODES).optional(),
     cpuThreads: z.number().int().min(0).max(128).optional(),
     ubatchSize: z.number().int().min(32).max(1024).optional(),
@@ -38,6 +40,10 @@ const DEFAULT_PREFERENCES: Required<Preferences> = {
   systemPrompt: "",
   temperature: 0.7,
   maxTokens: 2048,
+  // 1.0 birakmak kucuk modellerde ilk uretilen simgenin dogrudan <eos>
+  // olmasina yol aciyor: cevap bos doner. 1.1 kaynak projelerin de kullandigi
+  // deger ve buyuk modellerde fark ettirmiyor.
+  repeatPenalty: 1.1,
   powerMode: "balanced",
   cpuThreads: 0,
   ubatchSize: 256,

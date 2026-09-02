@@ -23,6 +23,11 @@ export interface OpenAiCompatibleConfig {
   apiKey?: string;
   /** Sağlayıcıya özgü ek başlıklar (ör. OpenRouter atıf başlıkları). */
   headers?: Record<string, string>;
+  /**
+   * llama.cpp'ye özgü örnekleyici alanları gönderilsin mi. OpenAI ve
+   * OpenRouter bilinmeyen alanda isteği reddedebilir.
+   */
+  llamaCppExtensions?: boolean;
 }
 
 export async function* streamOpenAiCompatible(
@@ -42,6 +47,9 @@ export async function* streamOpenAiCompatible(
   if (options.maxTokens !== undefined) body["max_tokens"] = options.maxTokens;
   if (options.stop?.length) body["stop"] = options.stop;
   if (options.seed !== undefined) body["seed"] = options.seed;
+  if (config.llamaCppExtensions && options.repeatPenalty !== undefined) {
+    body["repeat_penalty"] = options.repeatPenalty;
+  }
   if (tools?.length) {
     body["tools"] = tools.map((tool) => ({
       type: "function",

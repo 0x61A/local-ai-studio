@@ -138,6 +138,7 @@ export function registerChatRoutes(router: Router): void {
           model,
           temperature: body.temperature ?? preferences.temperature,
           maxTokens: body.maxTokens ?? preferences.maxTokens,
+          repeatPenalty: preferences.repeatPenalty,
           signal: abort.signal,
         },
       )) {

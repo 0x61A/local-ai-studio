@@ -72,6 +72,11 @@ export interface ChatOptions {
   maxTokens?: number;
   stop?: string[];
   seed?: number;
+  /**
+   * Tekrar cezasi. Yalnizca yerel motorda gecerli; bulut saglayicilarinin
+   * `frequency_penalty`i farkli bir sey olcer, esitlemek yanlis olurdu.
+   */
+  repeatPenalty?: number;
   signal?: AbortSignal;
 }
 

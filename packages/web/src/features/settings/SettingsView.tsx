@@ -120,7 +120,21 @@ export function SettingsView() {
                 onBlur={(event) => void save({ maxTokens: Number(event.target.value) })}
               />
             </label>
+
+            <label className="facts__row">
+              <span className="facts__label">{t("settings.repeatPenalty")}</span>
+              <input
+                className="input"
+                type="number"
+                min={1}
+                max={2}
+                step={0.05}
+                defaultValue={preferences.repeatPenalty ?? 1.1}
+                onBlur={(event) => void save({ repeatPenalty: Number(event.target.value) })}
+              />
+            </label>
           </div>
+          <p className="facts__note">{t("settings.repeatPenaltyNote")}</p>
           {saved && <p className="facts__note">{t("settings.saved")}</p>}
         </section>
       )}

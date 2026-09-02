@@ -158,6 +158,36 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+describe("tekrar cezası teli", () => {
+  async function bodyOf(config: Parameters<typeof streamOpenAiCompatible>[0]) {
+    let sent: Record<string, unknown> = {};
+    vi.stubGlobal("fetch", async (_url: string, init: RequestInit) => {
+      sent = JSON.parse(String(init.body)) as Record<string, unknown>;
+      return sseResponse(["data: [DONE]\n\n"]);
+    });
+    await collect(
+      streamOpenAiCompatible(config, [{ role: "user", content: "selam" }], {
+        model: "test",
+        repeatPenalty: 1.1,
+      }),
+    );
+    return sent;
+  }
+
+  it("yerel motora repeat_penalty gönderir", async () => {
+    // 1.0 birakmak kucuk modellerde ilk simgeyi <eos> yapabiliyor: cevap bos.
+    const body = await bodyOf({ ...CONFIG, llamaCppExtensions: true });
+    expect(body["repeat_penalty"]).toBe(1.1);
+  });
+
+  it("bulut sağlayıcılara göndermez", async () => {
+    // OpenAI ve OpenRouter bu alani bilmiyor; `frequency_penalty` ise farkli
+    // bir sey olcuyor, esitlemek sessizce yanlis davranis olurdu.
+    const body = await bodyOf(CONFIG);
+    expect(body["repeat_penalty"]).toBeUndefined();
+  });
+});
+
 describe("streamOpenAiCompatible", () => {
   it("metin parçalarını ve bitişi verir", async () => {
     vi.stubGlobal("fetch", async () =>

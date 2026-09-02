@@ -104,3 +104,14 @@ describe("katalog projektör alanları", () => {
     expect(vision!.estimatedMb).toBeGreaterThan(modelOnlyMb);
   });
 });
+
+describe("cevirici GGUF ust verisi", () => {
+  it("<bos> otomatik ekleme acik", () => {
+    // Egitim bicimi her ornekte <bos> ile basliyor. Eklemeyi unutmak kisa
+    // girdilerde ilk uretilen simgeyi dogrudan <eos> yapiyordu: "selam"
+    // sorusuna 30 denemenin 30'unda bos cevap donuyordu.
+    const source = fs.readFileSync("scripts/convert/pt-gpt2-to-gguf.py", "utf8");
+    expect(source).toContain('"tokenizer.ggml.add_bos_token", True');
+    expect(source).toContain('"tokenizer.ggml.add_eos_token", False');
+  });
+});

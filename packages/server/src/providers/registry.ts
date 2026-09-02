@@ -128,7 +128,12 @@ function localProvider(): ChatProvider {
     },
     chat: (messages, options, tools) => {
       const base = requireLocal();
-      return streamOpenAiCompatible({ baseUrl: base }, messages, options, tools);
+      return streamOpenAiCompatible(
+        { baseUrl: base, llamaCppExtensions: true },
+        messages,
+        options,
+        tools,
+      );
     },
     embed: async (texts, model) => {
       const base = requireLocal();

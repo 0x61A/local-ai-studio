@@ -248,7 +248,9 @@
     "ubatch256": "256 — dengeli",
     "ubatch512": "512 — en hızlı",
     "resourceApplyNote": "Değişiklikler bir sonraki model yüklemesinde geçerli olur. Model açıksa Modeller sekmesinden yeniden yükleyin.",
-    "saveFailed": "Ayar kaydedilemedi: {{message}}"
+    "saveFailed": "Ayar kaydedilemedi: {{message}}",
+    "repeatPenalty": "Tekrar cezası",
+    "repeatPenaltyNote": "Yalnızca yerel motorda geçerli. 1 = kapalı. Küçük modellerde 1'e indirmek boş cevaba yol açabilir."
   },
   "system": {
     "title": "Sistem",

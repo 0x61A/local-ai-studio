@@ -274,6 +274,8 @@ export interface Preferences {
   systemPrompt: string;
   temperature: number;
   maxTokens: number;
+  /** Yerel motorda tekrar cezası. 1 = kapalı. */
+  repeatPenalty?: number;
   powerMode?: PowerMode;
   cpuThreads?: number;
   ubatchSize?: number;

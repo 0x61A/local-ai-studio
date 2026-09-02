@@ -31,6 +31,7 @@ export interface AgentRunOptions {
   maxSteps?: number;
   temperature?: number;
   maxTokens?: number;
+  repeatPenalty?: number;
 }
 
 export interface AgentRunResult {
@@ -79,6 +80,9 @@ async function execute(
           signal: options.signal,
           ...(options.temperature !== undefined ? { temperature: options.temperature } : {}),
           ...(options.maxTokens !== undefined ? { maxTokens: options.maxTokens } : {}),
+          ...(options.repeatPenalty !== undefined
+            ? { repeatPenalty: options.repeatPenalty }
+            : {}),
         },
         providerTools,
       )) {

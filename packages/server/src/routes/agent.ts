@@ -282,6 +282,7 @@ export function registerAgentRoutes(router: Router): void {
         ...(body.maxSteps !== undefined ? { maxSteps: body.maxSteps } : {}),
         temperature: preferences.temperature,
         maxTokens: preferences.maxTokens,
+        repeatPenalty: preferences.repeatPenalty,
         messages: [
           { role: "system", content: buildSystemPrompt(workspace, preferences.systemPrompt) },
           ...history,

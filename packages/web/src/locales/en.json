@@ -248,7 +248,9 @@
     "ubatch256": "256 — balanced",
     "ubatch512": "512 — fastest",
     "resourceApplyNote": "Changes take effect the next time a model is loaded. If one is running, reload it from the Models tab.",
-    "saveFailed": "Could not save setting: {{message}}"
+    "saveFailed": "Could not save setting: {{message}}",
+    "repeatPenalty": "Repetition penalty",
+    "repeatPenaltyNote": "Local engine only. 1 = off. Lowering it to 1 can make small models return empty answers."
   },
   "system": {
     "title": "System",

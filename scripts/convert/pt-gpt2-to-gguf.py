@@ -36,7 +36,7 @@ GGUF_MAGIC = b"GGUF"
 GGUF_VERSION = 3
 ALIGNMENT = 32
 
-T_UINT32, T_INT32, T_FLOAT32, T_STRING, T_ARRAY = 4, 5, 6, 8, 9
+T_UINT32, T_INT32, T_FLOAT32, T_BOOL, T_STRING, T_ARRAY = 4, 5, 6, 7, 8, 9
 TYPE_F32, TYPE_F16 = 0, 1
 
 # Normal simge ile ozel (kontrol) simgeyi ayirmak zorunlu: ayirmazsak
@@ -59,6 +59,11 @@ def w_kv_string(out, key: str, value: str) -> None:
 def w_kv_u32(out, key: str, value: int) -> None:
     w_string(out, key)
     out.write(struct.pack("<II", T_UINT32, value))
+
+
+def w_kv_bool(out, key: str, value: bool) -> None:
+    w_string(out, key)
+    out.write(struct.pack("<IB", T_BOOL, 1 if value else 0))
 
 
 def w_kv_f32(out, key: str, value: float) -> None:
@@ -211,6 +216,12 @@ def main() -> None:
         ("general.file_type", 1, w_kv_u32),
         ("tokenizer.ggml.model", "gpt2", w_kv_string),
         ("tokenizer.ggml.pre", "default", w_kv_string),
+        # Egitim bicimi her ornekte <bos> ile basliyor. Eklemeyi unutmak
+        # modeli dagilim disina cikariyor: kisa girdilerde ilk uretilen simge
+        # dogrudan <eos> oluyor ve cevap bos donuyor ("selam" -> 30/30 bos).
+        # Sablonda degil burada: ham /completion yolu da ayni girdiyi gorsun.
+        ("tokenizer.ggml.add_bos_token", True, w_kv_bool),
+        ("tokenizer.ggml.add_eos_token", False, w_kv_bool),
         # Sohbet sablonu GGUF'un icine gomulur; boylece arayuz ve ajan bu
         # modeli ozel bir kod yolu olmadan kullanabilir. Modelde sistem rolu
         # yok, sistem metni ilk kullanici turuna katlanir.
