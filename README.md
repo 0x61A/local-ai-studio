@@ -33,7 +33,8 @@ Linux:
 Windows: `start.bat` dosyasina cift tiklayin.
 
 Ilk calistirmada tasinabilir Node.js `runtime/node` altina indirilir
-(SHA256 dogrulamali). Sisteme hicbir sey kurulmaz.
+(SHA256 dogrulamali), bagimliliklar o Node'un npm'iyle kurulur ve derleme
+yapilir. Sisteme hicbir sey kurulmaz; sisteminizde Node olmasi gerekmez.
 
 Motorlar ayri ayri indirilir; yalnizca kullanacaklarinizi kurun. macOS ve
 Linux'ta:
@@ -71,6 +72,18 @@ motor `0xC0000135` ile aciliyor bile.
 Sonra arayuzdeki **Modeller** sekmesinden Hugging Face'te arama yapip tek
 tikla model indirebilirsiniz. Bulut saglayicilari (OpenAI, Anthropic,
 Gemini, OpenRouter) icin **Ayarlar** sekmesinden API anahtari ekleyin.
+
+### Model katalogu nasil guncel kaliyor
+
+Katalogda dosya adi ve indirme adresi tutulmuyor -- yalnizca depo kimligi ve
+tercih edilen nicemleme. Gercek dosya adi, boyut, adres ve SHA256 indirmeye
+basildigi anda Hugging Face'in dosya listesinden cozuluyor.
+
+Elle yazilan dosya adlari curuyor: depo sahipleri dosyalari yeniden
+adlandiriyor, parcaliyor, siliyor. Bir noktada 33 girdinin 9'u 404 veriyordu
+ve bu ancak kullanici indirmeye basinca goruluyordu. Simdi kirilabilecek tek
+sey deponun kendisi ve o da indirme baslamadan once anlasilir bir hata
+veriyor.
 
 ## Neler var
 

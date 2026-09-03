@@ -14,18 +14,24 @@ if (-not (Test-Path $node)) {
   & (Join-Path $root "scripts\setup\fetch-node.ps1")
 }
 
-# 2) Derlenmis cikti yoksa (gelistirici kopyasi) burada uret.
+# 2) Derlenmis cikti yoksa (kaynak kopyasi) burada uret. Bagimliliklar da
+#    eksikse tasinabilir npm ile kurulur; kullanicidan sisteme Node kurmasini
+#    istemek "sifir kurulum" vaadini bozardi.
 if (-not (Test-Path $serverJs) -or -not (Test-Path $webIndex)) {
-  if (Test-Path (Join-Path $root "node_modules")) {
-    Write-Host "  Derlenmis cikti eksik, build calistiriliyor..."
-    $env:PATH = (Join-Path $root "runtime\node") + [IO.Path]::PathSeparator + $env:PATH
-    & (Join-Path $root "runtime\node\npm.cmd") run build
-    if ($LASTEXITCODE -ne 0) { throw "build basarisiz" }
-  } else {
-    Write-Error "  [HATA] Derlenmis cikti yok ve bagimliliklar kurulu degil."
-    Write-Error "         Gelistirici kopyasindaysaniz: npm install && npm run build"
-    exit 1
+  $env:PATH = (Join-Path $root "runtime\node") + [IO.Path]::PathSeparator + $env:PATH
+  $npm = Join-Path $root "runtime\node\npm.cmd"
+  if (-not (Test-Path (Join-Path $root "node_modules"))) {
+    Write-Host "  Ilk calistirma: bagimliliklar kuruluyor (birkac dakika surebilir)..."
+    if (Test-Path (Join-Path $root "package-lock.json")) {
+      & $npm ci --no-audit --no-fund --loglevel=error
+    } else {
+      & $npm install --no-audit --no-fund --loglevel=error
+    }
+    if ($LASTEXITCODE -ne 0) { throw "bagimlilik kurulumu basarisiz" }
   }
+  Write-Host "  Derlenmis cikti eksik, build calistiriliyor..."
+  & $npm run build
+  if ($LASTEXITCODE -ne 0) { throw "build basarisiz" }
 }
 
 $env:STUDIO_ROOT = $root

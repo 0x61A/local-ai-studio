@@ -16,16 +16,23 @@ if [[ ! -x "$NODE_BIN" ]]; then
   bash "$ROOT/scripts/setup/fetch-node.sh"
 fi
 
-# 2) Derlenmis cikti yoksa (gelistirici kopyasi) burada uret.
+# 2) Derlenmis cikti yoksa (kaynak kopyasi) burada uret.
+#    Bagimliliklar da eksikse tasinabilir npm ile kurulur: depoyu klonlayan
+#    kullanicidan once sisteme Node kurmasini istemek "sifir kurulum"
+#    vaadini bozardi. Yayin paketinde dist/ hazir gelir, bu blok hic calismaz.
 if [[ ! -f "$SERVER_JS" || ! -f "$WEB_INDEX" ]]; then
-  if [[ -d "$ROOT/node_modules" ]]; then
-    echo "  Derlenmis cikti eksik, build calistiriliyor..."
-    PATH="$ROOT/runtime/node/bin:$PATH" npm run build
-  else
-    echo "  [HATA] Derlenmis cikti yok ve bagimliliklar kurulu degil." >&2
-    echo "         Gelistirici kopyasindaysaniz: npm install && npm run build" >&2
-    exit 1
+  export PATH="$ROOT/runtime/node/bin:$PATH"
+  if [[ ! -d "$ROOT/node_modules" ]]; then
+    echo "  Ilk calistirma: bagimliliklar kuruluyor (birkac dakika surebilir)..."
+    # package-lock.json varsa ci daha hizli ve kilitle birebir ayni.
+    if [[ -f "$ROOT/package-lock.json" ]]; then
+      npm ci --no-audit --no-fund --loglevel=error
+    else
+      npm install --no-audit --no-fund --loglevel=error
+    fi
   fi
+  echo "  Derlenmis cikti eksik, build calistiriliyor..."
+  npm run build
 fi
 
 export STUDIO_ROOT="$ROOT"
