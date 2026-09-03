@@ -265,6 +265,10 @@ function readPidFile(): Record<string, PidRecord> {
 
 function writePidFile(records: Record<string, PidRecord>): void {
   try {
+    // Klasor yoksa yazma ENOENT ile duserdi ve hata yutuldugu icin yetim
+    // toplama sessizce calismaz olurdu. Uretimde main.ts zaten olusturuyor
+    // ama bu fonksiyon ona bagli kalmamali.
+    fs.mkdirSync(path.dirname(ENGINE_PID_FILE), { recursive: true });
     fs.writeFileSync(ENGINE_PID_FILE, JSON.stringify(records), "utf8");
   } catch {
     // Kayıt tutulamazsa yetim toplama çalışmaz; çalışmayı engellemez.

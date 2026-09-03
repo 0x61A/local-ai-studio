@@ -16,5 +16,10 @@ export default defineConfig({
   },
   test: {
     include: ["packages/*/test/**/*.test.ts", "packages/*/test/**/*.test.tsx"],
+    // Varsayilan 5 sn Windows kosucularinda dar: donanim tespiti orada
+    // PowerShell calistiriyor ve ilk cagri saniyeler suruyor. Hizli testler
+    // yine hizli biter; bu yalnizca tavani kaldirir.
+    testTimeout: 20_000,
+    hookTimeout: 20_000,
   },
 });

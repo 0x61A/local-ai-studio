@@ -184,6 +184,10 @@ describe("yetim süreç toplama", () => {
     const { reapOrphans } = await import("../src/engines/supervisor.js");
     const fs = await import("node:fs");
     const { ENGINE_PID_FILE } = await import("../src/config.js");
+    // data/ depoda yok (gitignore). Baska bir testin onu olusturmus olmasina
+    // guvenmek testi siraya bagli yapiyordu: Windows'ta sira degisince ENOENT.
+    const nodePath = await import("node:path");
+    fs.mkdirSync(nodePath.dirname(ENGINE_PID_FILE), { recursive: true });
 
     // Bu sürecin kendi kimliği: bizim "motor ikilimiz" değil, bu yüzden
     // dokunulmamalı. Kör öldürme burada patlardı.
@@ -201,6 +205,10 @@ describe("yetim süreç toplama", () => {
     const { reapOrphans } = await import("../src/engines/supervisor.js");
     const fs = await import("node:fs");
     const { ENGINE_PID_FILE } = await import("../src/config.js");
+    // data/ depoda yok (gitignore). Baska bir testin onu olusturmus olmasina
+    // guvenmek testi siraya bagli yapiyordu: Windows'ta sira degisince ENOENT.
+    const nodePath = await import("node:path");
+    fs.mkdirSync(nodePath.dirname(ENGINE_PID_FILE), { recursive: true });
     fs.writeFileSync(
       ENGINE_PID_FILE,
       JSON.stringify({ eski: { pid: 999999, binary: "/bin/whatever" } }),
@@ -214,6 +222,10 @@ describe("yetim süreç toplama", () => {
     const fs = await import("node:fs");
     const { spawn } = await import("node:child_process");
     const { ENGINE_PID_FILE } = await import("../src/config.js");
+    // data/ depoda yok (gitignore). Baska bir testin onu olusturmus olmasina
+    // guvenmek testi siraya bagli yapiyordu: Windows'ta sira degisince ENOENT.
+    const nodePath = await import("node:path");
+    fs.mkdirSync(nodePath.dirname(ENGINE_PID_FILE), { recursive: true });
 
     const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"]);
     await new Promise((resolve) => setTimeout(resolve, 200));
