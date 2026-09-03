@@ -7,7 +7,7 @@ import { getBudget, planLoad } from "../hardware/budget.js";
 import { HttpError } from "../http/errors.js";
 import type { Router } from "../http/router.js";
 import { downloads } from "../models/download.js";
-import { getCatalog } from "../models/catalog.js";
+import { CatalogResolveError, getCatalog, resolveCatalogModel } from "../models/catalog.js";
 import { GgufParseError, readGgufInfo } from "../models/gguf.js";
 import { findProjectorFor } from "../models/projector.js";
 import {
@@ -144,6 +144,22 @@ export function registerModelRoutes(router: Router): void {
       };
     },
   );
+
+  /**
+   * Katalog girdisini gercek dosyaya cozer: ad, adres, boyut, SHA256.
+   * Indirme dugmesi once burayi cagirir; boylece katalogda sabit dosya adi
+   * tutmak zorunda kalmiyoruz ve indirme her zaman dogrulanabiliyor.
+   */
+  router.get("/api/models/catalog/:id/resolve", {}, async ({ params }) => {
+    try {
+      return await resolveCatalogModel(params["id"] as string, getBudget().freeMb);
+    } catch (err) {
+      if (err instanceof CatalogResolveError) {
+        throw HttpError.badRequest("catalog_resolve_failed", err.message);
+      }
+      throw err;
+    }
+  });
 
   router.del("/api/models/:filename", {}, ({ params }) => {
     const target = resolveInside(MODELS_DIR, params["filename"] as string);

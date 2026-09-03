@@ -176,19 +176,31 @@ export interface CatalogModel {
   description: string;
   parameters: string;
   contextLength: number;
-  recommendedFile: string;
-  sizeBytes: number;
-  downloadUrl: string;
+  /** Tercih edilen nicemleme; dosya adı değil. */
+  preferredQuant: string;
+  /** Yalnızca gösterim için kaba boyut. */
+  approxSizeBytes: number;
   minRamGb: number;
   tags: string[];
   isEmbedding: boolean;
+  /** Görsel model: indirmede görüntü kodlayıcı da iner. */
+  needsProjector: boolean;
   fits: boolean;
   fitsReason: string;
   estimatedMb: number;
-  /** Görsel modellerde mmproj dosyası; yoksa null. */
-  projectorFile: string | null;
-  projectorUrl: string | null;
-  projectorSizeBytes: number;
+}
+
+export interface ResolvedFile {
+  filename: string;
+  downloadUrl: string;
+  sizeBytes: number;
+  sha256: string | null;
+}
+
+export interface ResolvedCatalogModel {
+  id: string;
+  model: ResolvedFile;
+  projector: ResolvedFile | null;
 }
 
 export interface HfFile {
@@ -471,6 +483,10 @@ export const api = {
   health: () => request<HealthStatus>("/api/health"),
 
   models: () => request<{ models: LocalModel[]; budget: MemoryBudget }>("/api/models"),
+  resolveCatalog: (id: string) =>
+    request<ResolvedCatalogModel>(
+      `/api/models/catalog/${encodeURIComponent(id)}/resolve`,
+    ),
   catalog: (lang?: "tr" | "en") =>
     request<{ catalog: CatalogModel[]; budget: MemoryBudget }>(
       lang ? `/api/models/catalog?lang=${lang}` : "/api/models/catalog",

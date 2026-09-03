@@ -88,7 +88,8 @@
     "download": "İndir",
     "projectorIncluded": "Görsel modeli: görüntü kodlayıcı da inecek (+{{size}}). İkisi olmadan model görsel göremez.",
     "projectorMissing": "Görüntü kodlayıcı (mmproj) eksik. Model yüklenir ama görsel göremez.",
-    "visionReady": "Görsel hazır"
+    "visionReady": "Görsel hazır",
+    "projectorIncludedShort": "Görsel model: görüntü kodlayıcı da inecek. İkisi olmadan model görsel göremez."
   },
   "knowledge": {
     "collections": "Koleksiyonlar",

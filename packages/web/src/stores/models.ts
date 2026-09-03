@@ -29,6 +29,8 @@ interface ModelsState {
   unloadEngine: () => Promise<void>;
   deleteModel: (filename: string) => Promise<void>;
   download: (url: string, filename: string, sha256?: string | null) => Promise<void>;
+  /** Katalog girdisini çözer ve model + varsa görüntü kodlayıcıyı indirir. */
+  downloadCatalog: (id: string) => Promise<void>;
   cancelDownload: (id: string) => Promise<void>;
 }
 
@@ -132,6 +134,22 @@ export const useModels = create<ModelsState>((set, get) => ({
   download: async (url, filename, sha256) => {
     try {
       await api.startDownload(url, filename, sha256);
+      await get().refreshDownloads();
+    } catch (err) {
+      set({ error: (err as Error).message });
+    }
+  },
+
+  downloadCatalog: async (id) => {
+    try {
+      // Dosya adı ve adres burada öğrenilir; katalogda sabit tutmak
+      // sürdürülemezdi. SHA256 de aynı yanıttan geliyor.
+      const resolved = await api.resolveCatalog(id);
+      const { model, projector } = resolved;
+      await api.startDownload(model.downloadUrl, model.filename, model.sha256);
+      if (projector) {
+        await api.startDownload(projector.downloadUrl, projector.filename, projector.sha256);
+      }
       await get().refreshDownloads();
     } catch (err) {
       set({ error: (err as Error).message });

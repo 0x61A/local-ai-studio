@@ -247,20 +247,28 @@ function CatalogSection({ catalog }: { catalog: CatalogModel[] }) {
 
 function CatalogCard({ model }: { model: CatalogModel }) {
   const t = useUi((s) => s.t);
-  const { local, engine, downloads, busy, loadEngine, download } = useModels();
+  const { local, engine, downloads, busy, loadEngine, download, downloadCatalog } =
+    useModels();
   const [expanded, setExpanded] = useState(false);
   const [files, setFiles] = useState<HfFile[]>([]);
   const [loadingFiles, setLoadingFiles] = useState(false);
 
-  const localMatch = local.find(
-    (l) =>
-      l.filename.toLowerCase() === model.recommendedFile.toLowerCase() ||
-      l.filename.toLowerCase().includes(model.id.toLowerCase()),
-  );
+  // Dosya adi artik katalogda tutulmuyor; eslesme deponun son parcasi ve
+  // model kimligi uzerinden yapilir.
+  const stem = model.repo.split("/").pop()?.replace(/-gguf$/i, "").toLowerCase() ?? "";
+  const belongsTo = (filename: string) => {
+    const name = filename.toLowerCase();
+    return (
+      (stem.length > 3 && name.includes(stem)) ||
+      name.includes(model.id.toLowerCase())
+    );
+  };
+
+  const localMatch = local.find((l) => belongsTo(l.filename));
 
   const activeDownload = downloads.find(
     (d) =>
-      d.filename.toLowerCase() === model.recommendedFile.toLowerCase() &&
+      belongsTo(d.filename) &&
       (d.state === "downloading" || d.state === "queued" || d.state === "verifying"),
   );
 
@@ -285,15 +293,6 @@ function CatalogCard({ model }: { model: CatalogModel }) {
 
   const isLoaded = localMatch && engine?.model === localMatch.filename;
 
-  /** Görsel modelde iki dosya var: dil modeli ve görüntü kodlayıcı.
-   *  Yalnızca ilkini indirmek modeli sessizce metin modeline çevirir. */
-  const downloadWithProjector = async () => {
-    await download(model.downloadUrl, model.recommendedFile, null);
-    if (model.projectorUrl && model.projectorFile) {
-      await download(model.projectorUrl, model.projectorFile, null);
-    }
-  };
-
   return (
     <div className="catalog-card">
       <div className="catalog-card__head">
@@ -303,7 +302,7 @@ function CatalogCard({ model }: { model: CatalogModel }) {
         </div>
         <div className="catalog-card__badges">
           <span className="badge badge--accent">{model.parameters}</span>
-          <span className="badge">{formatGb(model.sizeBytes / 1048576)}</span>
+          <span className="badge">~{formatGb(model.approxSizeBytes / 1048576)}</span>
         </div>
       </div>
 
@@ -325,13 +324,11 @@ function CatalogCard({ model }: { model: CatalogModel }) {
         </span>
       </div>
 
-      {model.projectorFile && (
+      {model.needsProjector && (
         <p className="facts__note">
           {localMatch && !localMatch.projector
             ? t("models.projectorMissing")
-            : t("models.projectorIncluded", {
-                size: formatGb(model.projectorSizeBytes / 1048576),
-              })}
+            : t("models.projectorIncludedShort")}
         </p>
       )}
 
@@ -356,7 +353,7 @@ function CatalogCard({ model }: { model: CatalogModel }) {
           <button
             type="button"
             className="button button--small"
-            onClick={() => void downloadWithProjector()}
+            onClick={() => void downloadCatalog(model.id)}
           >
             ↓ {t("models.quickDownload")}
           </button>
@@ -390,7 +387,7 @@ function CatalogCard({ model }: { model: CatalogModel }) {
                   <li className="file" key={file.path}>
                     <span className="file__name">
                       {file.path}
-                      {file.path === model.recommendedFile && (
+                      {file.path.toLowerCase().includes(model.preferredQuant.toLowerCase()) && (
                         <span className="file__badge">{t("models.recommendedBadge")}</span>
                       )}
                     </span>
