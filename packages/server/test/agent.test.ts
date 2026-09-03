@@ -587,7 +587,10 @@ describe("çalışma alanı yolu", () => {
         },
       },
     );
-    expect(seenSummary).toContain("alt/dosya.txt");
+    // Onay kartinda isletim sisteminin kendi ayraci gorunur: Windows'ta
+    // "alt\\dosya.txt" dogru olan, POSIX ayraci beklemek testin hatasiydi.
+    expect(seenSummary).toContain(path.join("alt", "dosya.txt"));
+    // Asil iddia bu: yol calisma alanina goreli, kacis denemesi gibi durmuyor.
     expect(seenSummary).not.toContain("..");
   });
 });
