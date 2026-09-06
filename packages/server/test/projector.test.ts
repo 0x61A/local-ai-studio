@@ -100,4 +100,14 @@ describe("cevirici GGUF ust verisi", () => {
     expect(source).toContain('"tokenizer.ggml.add_bos_token", True');
     expect(source).toContain('"tokenizer.ggml.add_eos_token", False');
   });
+
+  it("ozel olmayan eklenmis simgeler USER_DEFINED", () => {
+    // Girinti simgeleri (4/8/12/16 bosluk) icerigi duz tutuyor, sozlugun
+    // geri kalani bayt kodlamali. NORMAL yazmak llama.cpp'ye onlari bayt
+    // kodlamasi sandiriyordu: kod ciktisinda her girinti yerine
+    // "[UNK_BYTE_0x20    ]" basiliyordu.
+    const source = fs.readFileSync("scripts/convert/pt-gpt2-to-gguf.py", "utf8");
+    expect(source).toContain("TOKEN_TYPE_USER_DEFINED");
+    expect(source).toMatch(/else:\s*\n(\s*#.*\n)*\s*types\[token_id\] = TOKEN_TYPE_USER_DEFINED/);
+  });
 });

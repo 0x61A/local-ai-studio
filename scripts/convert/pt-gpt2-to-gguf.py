@@ -41,7 +41,7 @@ TYPE_F32, TYPE_F16 = 0, 1
 
 # Normal simge ile ozel (kontrol) simgeyi ayirmak zorunlu: ayirmazsak
 # "<bos>" metin icinde gecince simge olarak yorumlanabilirdi.
-TOKEN_TYPE_NORMAL, TOKEN_TYPE_CONTROL = 1, 3
+TOKEN_TYPE_NORMAL, TOKEN_TYPE_CONTROL, TOKEN_TYPE_USER_DEFINED = 1, 3, 4
 
 
 def w_string(out, value: str) -> None:
@@ -146,9 +146,15 @@ def build_vocab(tok: dict):
     for token, token_id in vocab.items():
         tokens[token_id] = token
     for token_id, entry in added.items():
-        # Girinti simgeleri ozel degil, sadece sonradan eklenmis normal simge.
         if entry.get("special"):
             types[token_id] = TOKEN_TYPE_CONTROL
+        else:
+            # Girinti simgeleri (4/8/12/16 bosluk) icerigi DUZ tutuyor, oysa
+            # sozlugun geri kalani bayt kodlamali ("Ġ" = bosluk). NORMAL
+            # yazarsak llama.cpp onlari bayt kodlamasi sanip cozemiyor ve
+            # ciktiya "[UNK_BYTE_0x20    ]" cöpü basiyor. USER_DEFINED
+            # icerigi oldugu gibi kullanir.
+            types[token_id] = TOKEN_TYPE_USER_DEFINED
 
     missing = [i for i, token in enumerate(tokens) if token == ""]
     if missing:
